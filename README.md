@@ -1,7 +1,7 @@
 
 
 
-| <img src="./logo.png" width="340"/> | <h1 align="left">Fabric</h1> <p align="left">Fabric is a trustless, distributed DNS resolver for [spaces](https://spacesprotocol.org), enabling them to publish Bitcoin-signed zone files on a permissionless DHT without storing anything on-chain!</p><br /> |
+| <img src="./logo.png" width="340"/> | <h1 align="left">Fabric</h1> <p align="left">Fabric is a trustless, distributed DNS resolver for [spaces](https://spacesprotocol.org), enabling spaces to publish Bitcoin-signed zone files on a permissionless DHT without storing anything on-chain!</p><br /> |
 |-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 
