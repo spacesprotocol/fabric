@@ -34,8 +34,9 @@ Use `beam` it's like a distributed `dig`!
 beam @onion TXT
 ```
 
-**Note**: `beam` will automatically connect to a locally run spaces node using its default port for `testnet4` to verify answers from the DHT.
+Space @now also has TXT records published.
 
+**Note**: `beam` will automatically connect to a locally run spaces node using its default port for `testnet4` to verify answers from the DHT.
 
 
 ## How to publish records for a Space?
