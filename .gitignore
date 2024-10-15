@@ -1,0 +1,9 @@
+beam.keypair.json
+*.zone
+*.zone.signed
+index.txt
+zones
+node_modules
+.DS_Store
+.idea
+dist
