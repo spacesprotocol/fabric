@@ -31,7 +31,7 @@ npm install -g spacesprotocol/fabric
 Use `beam` it's like a distributed `dig`!
 
 ```
-beam @btc TXT
+beam @onion TXT
 ```
 
 **Note**: `beam` will automatically connect to a locally run spaces node using its default port for `testnet4` to verify answers from the DHT.
