@@ -22,7 +22,7 @@ You may use [this guide](https://docs.spacesprotocol.org/getting-started/install
 After [setting up spaces](https://docs.spacesprotocol.org/getting-started/installation), install Fabric:
 
 ```shell
-npm install -g spacesprotocol/fabric
+npm install -g @spacesprotocol/fabric
 ```
 
 
