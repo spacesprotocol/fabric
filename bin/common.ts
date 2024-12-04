@@ -20,7 +20,7 @@ export function defineMainOptions() {
         .version('0.1.0')
         .option('--seeds <nodes...>', 'Connect to the following bootstrap nodes')
         .option('--peers <nodes...>', 'Include the following known peers')
-        .option('--chain <chain>', 'Bitcoin network', 'testnet4')
+        .option('--chain <chain>', 'Bitcoin network', 'mainnet')
         .option('--spaces-rpc-url <url>', 'Specify a spaces rpc url (default based on chain)');
 }
 
