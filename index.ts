@@ -52,7 +52,8 @@ export class Fabric extends HyperDHT {
     public spaces: Spaces;
 
     constructor(opts: FabricOptions = {}) {
-        opts.bootstrap = opts.bootstrap || BOOTSTRAP_NODES
+        const chain = opts.spaces?.resolver?.chain || 'mainnet';
+        opts.bootstrap = opts.bootstrap || BOOTSTRAP_NODES[chain].map(n => `${n.host}:${n.port}`); 
         super(opts);
         this.once('persistent', () => {
             this._zones = new Cache(opts.zones || {

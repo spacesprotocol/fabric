@@ -7,12 +7,10 @@
 
 Fabric is a trustless, distributed DNS resolver built on top of [hyperdht](https://github.com/holepunchto/hyperdht), extending its capabilities to allow publishing signed zone files using [spaces](https://spacesprotocol.org) as keys authenticated by Bitcoin. [Spaces](https://spacesprotocol.org) are sovereign Bitcoin identities and serve as a trust anchor, while Fabric DHT enables publishing records off-chain without adding any unnecessary on-chain bloat.
 
-**Note:** Fabric currently defaults to Bitcoin testnet4 since spaces are not yet on Bitcoin mainnet.
-
 ## Prerequisites
 To use `fabric` and `beam`, you need to:
 
-- Run Bitcoin Core on testnet4
+- Run Bitcoin Core on mainnet 
 - Install and sync spaces 
 
 You may use [this guide](https://docs.spacesprotocol.org/getting-started/installation) to set these up.
@@ -36,9 +34,6 @@ beam @onion TXT
 
 Space @now also has TXT records published.
 
-**Note**: `beam` will automatically connect to a locally run spaces node using its default port for `testnet4` to verify answers from the DHT.
-
-
 ## How to publish records for a Space?
 
 1. Create a zone file (e.g., example.zone) with an SOA record and the records you want to publish:
@@ -55,13 +50,13 @@ Space @now also has TXT records published.
 2. Find the space's private key using `space-cli`
 
 ```shell
-space-cli --chain testnet4 exportwallet | grep '"spaces_descriptor"' | sed -E 's/.*(tprv[^\/]*).*/\1/'
+space-cli --chain mainnet exportwallet | grep '"descriptor"' | sed -E 's/.*(xprv[^\/]*).*/\1/'
 ```
 
 it should look something like this:
 
 ```
-tprv8ZgxMBicQKsPeUUxV746bQ9JmsytoyEeioAd9b962bQxcq7PfK8vRbFkSR7JD7ySoBoyswHX5vQvnhS95dHKUxW2maG2Tt7bJcCHsY66gNF
+xprv8ZgxMBicQKsPeUUxV746bQ9JmsytoyEeioAd9b962bQxcq7PfK8vRbFkSR7JD7ySoBoyswHX5vQvnhS95dHKUxW2maG2Tt7bJcCHsY66gNF
 ```
 
 
@@ -82,8 +77,6 @@ You can either:
 ## Running a Fabric node
 
 Run a node if you want to publish your own zones and also contribute to the network. Specify a reachable ip/port:
-
-**Note**: Fabric will automatically connect to a locally run spaces node using its default port for testnet4.
 
 ```
 fabric --host <ip-address> --port <public-port>
