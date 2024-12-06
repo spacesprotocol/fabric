@@ -1,8 +1,14 @@
 import * as crypto from 'hypercore-crypto';
+import { BootstrapNode, BootstrapNodes } from './types';
 
-export const BOOTSTRAP_NODES = [
-  '107.152.45.120@testnet4.fabric.buffrr.dev:22253',
-]
+export const BOOTSTRAP_NODES = {
+  mainnet: [
+    { host: '44.209.201.250', port: 40357 }
+  ],
+  testnet4: [
+    { host: '107.152.45.120', port: 22253 }
+  ]
+};
 
 // Extend the existing COMMANDS from hyperdht/lib/constants
 export const COMMANDS = {

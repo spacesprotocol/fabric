@@ -86,7 +86,7 @@ export class Resolver {
     rpcUrl: URL;
 
     constructor(opts: ResolverOptions = {}) {
-        this.chain = opts.chain || 'testnet4';
+        this.chain = opts.chain || 'mainnet';
         this.rpcUrl = new URL(opts.rpcUrl || `http://localhost:${this.default_rpc_port()}`);
     }
 

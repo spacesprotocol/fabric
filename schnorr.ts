@@ -14,31 +14,32 @@ interface TweakedKeyPair {
 
 // Finds the tweaked private key from an extended private key matching a given address
 export function findTweakedPair(xprv: string, derivedAddress: string): TweakedKeyPair | null {
-    const path = `${prefix}'/86'/1'/0'/0/*`;
-    const network = xprv.startsWith('tprv') ? bitcoin.networks.testnet : bitcoin.networks.bitcoin;
-    const node: BIP32Interface = bip32.fromBase58(xprv, network);
+   const network = xprv.startsWith('tprv') ? bitcoin.networks.testnet : bitcoin.networks.bitcoin;
+   const path = `86'/0'/0'/0/*`;
+   
+   const rootNode: BIP32Interface = bip32.fromBase58(xprv, network);
+   const pathComponents = path.split('/').filter(component => component !== '*');
+   const baseNode: BIP32Interface = pathComponents.reduce((acc: BIP32Interface, component: string) => {
+   const isHardened = component.endsWith('\'');
+   const index = parseInt(component, 10);
 
-    const pathComponents = path.split('/').filter(component => component !== '*');
-    const baseNode: BIP32Interface = pathComponents.reduce((acc: BIP32Interface, component: string) => {
-        const isHardened = component.endsWith('\'');
-        const index = parseInt(component, 10);
-        return isHardened ? acc.deriveHardened(index) : acc.derive(index);
-    }, node);
+   return isHardened ? acc.deriveHardened(index) : acc.derive(index);
+   }, rootNode);
 
-    const maxDerivations = 1000;
-    for (let i = 0; i < maxDerivations; i++) {
-        const child = baseNode.derive(i);
-        const pubkey = child.publicKey.slice(1, 33);
-        const {address} = bitcoin.payments.p2tr({
-            internalPubkey: pubkey,
-            network,
-        });
-        if (!address) continue;
+   const MAX_DERIVATIONS = 1000;
+   for (let i = 0; i < MAX_DERIVATIONS; i++) {
+       const child = baseNode.derive(i);
+       const pubkey = child.publicKey.slice(1, 33);
+       const {address} = bitcoin.payments.p2tr({
+           internalPubkey: pubkey,  
+           network,
+       });
+       if (!address) continue;
         const tweakHash = bitcoin.crypto.taggedHash('TapTweak', pubkey);
-        const tweakedPriv = child.tweak(tweakHash) as BIP32Interface;
+      	const tweakedPriv = child.tweak(tweakHash) as BIP32Interface;
 
         if (address === derivedAddress || spaceAddress(address) === derivedAddress) {
-            return {
+    	    return {
                 privateKey: tweakedPriv.privateKey!,
                 publicKey: tweakedPriv.publicKey!.slice(1),
             };
@@ -65,10 +66,11 @@ export function scriptPubKeyToAddress(scriptPubKey: string, network: string = 'm
 // Adjusts address prefix for the space network
 function spaceAddress(address: string): string {
     const decoded = bech32m.decode(address);
-    if (decoded.prefix !== 'tb' && decoded.prefix !== 'bc') {
-        throw new Error('Invalid address prefix');
+    // Handle bc -> bcs for spaces
+    if (decoded.prefix === 'bc') {
+        return bech32m.encode('bcs', decoded.words);
     }
-    return bech32m.encode(`${decoded.prefix}s`, decoded.words);
+    return address;
 }
 
 // Schnorr signing
