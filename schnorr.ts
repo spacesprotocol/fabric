@@ -20,9 +20,10 @@ export function findTweakedPair(xprv: string, derivedAddress: string): TweakedKe
    const rootNode: BIP32Interface = bip32.fromBase58(xprv, network);
    const pathComponents = path.split('/').filter(component => component !== '*');
    const baseNode: BIP32Interface = pathComponents.reduce((acc: BIP32Interface, component: string) => {
-       const isHardened = component.endsWith('\'');
-       const index = parseInt(component, 10);
-       return isHardened ? acc.deriveHardened(index) : acc.derive(index);
+   const isHardened = component.endsWith('\'');
+   const index = parseInt(component, 10);
+
+   return isHardened ? acc.deriveHardened(index) : acc.derive(index);
    }, rootNode);
 
    const MAX_DERIVATIONS = 1000;
@@ -38,7 +39,7 @@ export function findTweakedPair(xprv: string, derivedAddress: string): TweakedKe
       	const tweakedPriv = child.tweak(tweakHash) as BIP32Interface;
 
         if (address === derivedAddress || spaceAddress(address) === derivedAddress) {
-    		return {
+    	    return {
                 privateKey: tweakedPriv.privateKey!,
                 publicKey: tweakedPriv.publicKey!.slice(1),
             };

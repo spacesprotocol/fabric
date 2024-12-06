@@ -91,9 +91,10 @@ export class Resolver {
     }
 
     async resolve(space: string): Promise<SpaceInfo | null> {
-       // if (!Buffer.isBuffer(spaceHash) || spaceHash.length !== 32) {
-       //     throw new Error('spaceHash must be a 32-byte Buffer');
-       // }
+        // Validate that `space` is a string starting with `@`
+        if (typeof space !== 'string' || !space.startsWith('@')) {
+            throw new Error("Invalid space identifier. It must be a string starting with '@'.");
+        }
 
         const info = await this.call_rpc('getspace', [space]);
         if (!info) return null;
