@@ -2,6 +2,7 @@ import * as crypto from 'hypercore-crypto';
 
 export const BOOTSTRAP_NODES = [
   '107.152.45.120@testnet4.fabric.buffrr.dev:22253',
+  '70.251.209.207@mainnet.fabric.nostrops.space:22253',
 ]
 
 // Extend the existing COMMANDS from hyperdht/lib/constants
