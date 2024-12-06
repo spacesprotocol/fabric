@@ -6,7 +6,6 @@ import fs from 'fs';
 import { Fabric } from '../index';
 import { parseZoneFile } from '../zones';
 import dns, {Answer} from 'dns-packet';
-import { spaceHash } from '../utils';
 import { resolve, basename } from 'node:path';
 import b4a from 'b4a';
 import {KeyPair} from "hypercore-crypto";
@@ -227,10 +226,9 @@ class Beam {
 
   async resolveZone(space: string, latest: boolean = false): Promise<ResolveZoneResponse> {
     await this.fabric.spaces.checkAnchor();
-    const target = spaceHash(space.slice(1));
     const start = performance.now();
     const qtime = now();
-    const res = await this.fabric.zoneGet(target, { latest });
+    const res = await this.fabric.zoneGet(space, { latest });
     const elapsed = performance.now() - start;
 
     if (!res) throw new Error('Zone not found');
@@ -321,19 +319,18 @@ program
         }
 
         const version = soa.data.serial;
-        const target = spaceHash(space.slice(1));
         const value = dns.encode({
           type: 'response',
           answers: parsedZone as Answer[]
         });
 
-        const { msg, signature } = await fabric.zoneSign(target, value, privateKey, { seq: version });
+        const { msg, signature } = await fabric.zoneSign(space, value, privateKey, { seq: version });
 
         content += `\n; signature\n`;
         content += `_witness   ${soa.data.minimum} CLASS2 NULL \\# ${signature.length} ${Buffer.from(signature).toString('hex')}\n`;
         fs.writeFileSync(signedPath, content);
 
-        const verified = await fabric.spaces.verify(target, msg, signature);
+        const verified = await fabric.spaces.verify(space, msg, signature);
         if (!verified) {
           console.error('Failed to verify signature after signing');
           return;

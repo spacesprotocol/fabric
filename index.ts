@@ -7,6 +7,8 @@ import b4a from 'b4a';
 import {Spaces} from './spaces';
 import * as m from './messages';
 import {DHT} from "dht-rpc";
+import { BootstrapNode, BootstrapNodes } from './types';
+import { spaceHash } from './utils';
 
 const defaultMaxSize = 32768;
 const defaultMaxAge = 48 * 60 * 60 * 1000; // 48 hours
@@ -52,8 +54,8 @@ export class Fabric extends HyperDHT {
     public spaces: Spaces;
 
     constructor(opts: FabricOptions = {}) {
-        const chain = opts.spaces?.resolver?.chain || 'mainnet';
-        opts.bootstrap = opts.bootstrap || BOOTSTRAP_NODES[chain].map(n => `${n.host}:${n.port}`); 
+        const chain = (opts.spaces?.resolver?.chain || 'mainnet') as keyof BootstrapNodes;
+        opts.bootstrap = opts.bootstrap || BOOTSTRAP_NODES[chain].map((n: BootstrapNode) => `${n.host}:${n.port}`);
         super(opts);
         this.once('persistent', () => {
             this._zones = new Cache(opts.zones || {
@@ -69,13 +71,14 @@ export class Fabric extends HyperDHT {
         return super.bootstrapper(port, host, opts)
     }
 
-    async zoneGet(target: Buffer, opts: any = {}) {
+    async zoneGet(space: string, opts: any = {}) {
         let refresh = opts.refresh || null;
         let signed: Buffer | Uint8Array | null = null;
         let result: any = null;
         opts = {...opts, map: mapZone, commit: refresh ? commit : null};
 
         const userSeq = opts.seq || 0;
+        const target = spaceHash(space.slice(1));
         const query = this.query({target, command: COMMANDS.ZONE_GET, value: c.encode(c.uint, userSeq)}, opts);
         const latest = opts.latest !== false;
         const closestNodes: Buffer[] = [];
@@ -85,7 +88,7 @@ export class Fabric extends HyperDHT {
             if (result && node.seq <= result.seq) continue;
             if (node.seq < userSeq) continue;
             const msg = c.encode(m.zoneSignable, {seq: node.seq, value: node.value});
-            const valid = await this.spaces.verify(target, msg, node.signature);
+            const valid = await this.spaces.verify(space, msg, node.signature);
             if (!valid) continue;
             if (!latest) {
                 result = node;
@@ -156,17 +159,18 @@ export class Fabric extends HyperDHT {
         return {target, closestNodes: query.closestNodes, seq, signature};
     }
 
-    async zoneSign(target: Buffer, value: Buffer, xpriv: Buffer, opts: any = {}) {
+    async zoneSign(space: string, value: Buffer, xpriv: Buffer, opts: any = {}) {
         const seq = opts.seq || 0;
         const msg = c.encode(m.zoneSignable, {seq, value});
-        const signature = await this.spaces.sign(target, Buffer.from(msg), xpriv);
+        const signature = await this.spaces.sign(space, Buffer.from(msg), xpriv);
         return {seq, value, msg, signature};
     }
 
-    async zonePut(target: Buffer, value: Buffer, xpriv: Buffer, opts: any = {}) {
+    async zonePut(space: string, value: Buffer, xpriv: Buffer, opts: any = {}) {
         const seq = opts.seq || 0;
         const msg = c.encode(m.zoneSignable, {seq, value});
-        const signature = await this.spaces.sign(target, Buffer.from(msg), xpriv);
+        const signature = await this.spaces.sign(space, Buffer.from(msg), xpriv);
+        const target = spaceHash(space.slice(1));
         return this.zonePutSigned(target, value, signature, opts);
     }
 

@@ -1,4 +1,5 @@
 import * as crypto from 'hypercore-crypto';
+import { BootstrapNode, BootstrapNodes } from './types';
 
 export const BOOTSTRAP_NODES = {
   mainnet: [

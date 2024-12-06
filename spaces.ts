@@ -46,8 +46,8 @@ export class Spaces {
         return info
     }
 
-    async verify(spacehash: Buffer, message: Buffer | Uint8Array, signature: Buffer): Promise<boolean> {
-        const info = await this.resolve(spacehash);
+    async verify(space: string, message: Buffer | Uint8Array, signature: Buffer): Promise<boolean> {
+        const info = await this.resolve(space);
         if (!info) throw new Error('Space not found');
 
         const digest = b4a.allocUnsafe(32);
@@ -56,8 +56,8 @@ export class Spaces {
         return schnorr.verify(digest, info.publicKey, signature);
     }
 
-    async sign(spacehash: Buffer, message: Buffer, privateDescriptor: any): Promise<Buffer> {
-        const info = await this.resolve(spacehash);
+    async sign(space: string, message: Buffer, privateDescriptor: any): Promise<Buffer> {
+        const info = await this.resolve(space);
         if (!info) {
             throw new Error('Space not found');
         }
@@ -76,8 +76,8 @@ export class Spaces {
         return signature;
     }
 
-    async resolve(spaceHash: Buffer): Promise<SpaceInfo | null> {
-        return this.resolver.resolve(spaceHash);
+    async resolve(space: string): Promise<SpaceInfo | null> {
+        return this.resolver.resolve(space);
     }
 }
 
@@ -90,12 +90,12 @@ export class Resolver {
         this.rpcUrl = new URL(opts.rpcUrl || `http://localhost:${this.default_rpc_port()}`);
     }
 
-    async resolve(spaceHash: Buffer): Promise<SpaceInfo | null> {
-        if (!Buffer.isBuffer(spaceHash) || spaceHash.length !== 32) {
-            throw new Error('spaceHash must be a 32-byte Buffer');
-        }
+    async resolve(space: string): Promise<SpaceInfo | null> {
+       // if (!Buffer.isBuffer(spaceHash) || spaceHash.length !== 32) {
+       //     throw new Error('spaceHash must be a 32-byte Buffer');
+       // }
 
-        const info = await this.call_rpc('getspace', [spaceHash.toString('hex').trim()]);
+        const info = await this.call_rpc('getspace', [space]);
         if (!info) return null;
 
         info.address = schnorr.scriptPubKeyToAddress(info.script_pubkey, this.chain);
