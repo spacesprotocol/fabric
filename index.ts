@@ -7,6 +7,7 @@ import b4a from 'b4a';
 import {Spaces} from './spaces';
 import * as m from './messages';
 import {DHT} from "dht-rpc";
+import { BootstrapNode, BootstrapNodes } from './types';
 
 const defaultMaxSize = 32768;
 const defaultMaxAge = 48 * 60 * 60 * 1000; // 48 hours
@@ -52,7 +53,8 @@ export class Fabric extends HyperDHT {
     public spaces: Spaces;
 
     constructor(opts: FabricOptions = {}) {
-        opts.bootstrap = opts.bootstrap || BOOTSTRAP_NODES
+        const chain = (opts.spaces?.resolver?.chain || 'mainnet') as keyof BootstrapNodes;
+        opts.bootstrap = opts.bootstrap || BOOTSTRAP_NODES[chain].map((n: BootstrapNode) => `${n.host}:${n.port}`); 
         super(opts);
         this.once('persistent', () => {
             this._zones = new Cache(opts.zones || {
