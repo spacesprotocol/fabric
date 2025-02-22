@@ -17,7 +17,7 @@ interface Address {
 
 export function defineMainOptions() {
   program
-    .version('0.1.0')
+    .version('0.0.2')
     .option('--seeds <nodes...>', 'Connect to the following bootstrap nodes')
     .option('--peers <nodes...>', 'Include the following known peers')
     .option('--local-anchors <local>', 'Specify a local file to sync anchors')
