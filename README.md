@@ -5,7 +5,7 @@
 |-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 
-Fabric is a trustless, distributed DNS resolver built on top of [hyperdht](https://github.com/holepunchto/hyperdht), extending its capabilities to allow publishing signed zone files using [spaces](https://spacesprotocol.org) as keys authenticated by Bitcoin. [Spaces](https://spacesprotocol.org) are sovereign Bitcoin identities and serve as a trust anchor, while Fabric DHT enables publishing records off-chain without adding any unnecessary on-chain bloat.
+Fabric is a trustless, distributed DNS resolver built on top of [hyperdht](https://github.com/holepunchto/hyperdht). It lets you publish signed DNS zone files for [spaces](https://spacesprotocol.org)—sovereign Bitcoin identities—off-chain, without adding on-chain bloat.
 
 
 ## Installation
@@ -16,95 +16,73 @@ npm install -g @spacesprotocol/fabric
 ```
 
 
-## How to query spaces?
+## Querying Spaces with beam
 
-Use `beam` it's like a distributed `dig`!
 
-```
-beam @buffrr TXT  --remote-anchors http://127.0.0.1:7225/root-anchors.json
-```
-
-`--remote-anchors http://127.0.0.1:7225/root-anchors.json`: will load trust anchors file from your local spaces client connected to Bitcoin core.
-
-You may also specify a local anchors file e.g. `--local-anchors /path/to/root-anchors.json`
-
-## How to publish records for a space?
-
-1. Create a DNS zone file (e.g., example.zone) with an SOA record and the records you want to publish:
-
+The `beam` tool is your distributed `dig` and publisher.
 
 ```
-@example. 3600 CLASS2  SOA  . . ( 1 3600 600 604800 3600 )
-@example. 3600 CLASS2  A    127.0.0.1
-@example. 3600 CLASS2  TXT "hello world"
+beam @buffrr TXT
 ```
 
+By default, `beam` loads trust anchors from `http://127.0.0.1:7225/root-anchors.json` to verify responses (assuming a [spaces](https://github.com/spacesprotocol/spaces) client is running & connected to Bitcoin core). You can override this with:
+
+- A local anchors file: `--local-anchors /path/to/root-anchors.json`
+- A remote anchors URL: `--remote-anchors https://example.com/root-anchors.json`
+  (or by setting `FABRIC_REMOTE_ANCHORS` environment variable)
 
 
-2. Sign it with `space-cli`
+## Publishing Records for a Space
 
-```shell
-space-cli signzone example.zone
-```
+1. **Create a DNS zone file** (e.g., `example.zone`):
 
-It will create `example.packet.json` that you can publish!
+       @example. 3600 CLASS2 SOA . . ( 1 3600 600 604800 3600 )
+       @example. 3600 CLASS2 A   127.0.0.1
+       @example. 3600 CLASS2 TXT "hello world"
 
+2. **Sign the zone file** with `space-cli`:
 
-3. Publish the file using `beam`:
+       space-cli signzone example.zone
 
+   This produces `example.packet.json`.
 
-```shell
-beam publish example.packet.json
-```
+3. **Publish the packet** with beam:
 
-The network will keep it for up to 48 hours, then it will become stale and will be removed. 
+       beam publish example.packet.json
 
-To refresh, and re-publish it:
+The network retains records for up to 48 hours. To refresh, run:
 
-```shell
-space-cli refreshpacket example.packet.json
-beam publish example.packet.json
-```
+       space-cli refreshpacket example.packet.json
+       beam publish example.packet.json
 
+You can also distribute the signed packet (`example.packet.json`) to a Fabric service operator for continuous publication.
 
-Alternatively, distribute the signed packet file (`example.packet.json`) to a Fabric service operator to continue to publish it for you. The packet is signed with your keys so you don't need to trust them!
+## Running a Fabric Node
 
+To contribute to the network, run a Fabric node by specifying a reachable IP and port:
 
-## Running a Fabric node
+    fabric --host <ip-address> --port <public-port>
 
-Run a node to contribute to the network. Specify a reachable ip/port:
-
-```
-fabric --host <ip-address> --port <public-port> --remote-anchors http://127.0.0.1/root-anchors.json
-```
-
-or you could use `--local-anchors /path/to/root-anchors.json`. Fabric will continue to watch changes to this file.
-
-
-After about 30 minutes of uptime, your node will become persistent and contribute to the network's storage.
-
+After about 30 minutes of uptime, your node becomes persistent.
 
 ## Contributing Bootstrap Nodes
 
-**Note:** If you do not intened to submit a pull request you should ignore these instructions.
+We welcome more bootstrap nodes. To contribute:
 
-We could use more bootstrap nodes:
+1. Run a node with a reachable IP/port using the `--bootstrap` flag:
 
-1. Run a node with a reachable IP/Port specifying `--bootstrap` option
+       fabric --host <ip-address> --port <port> --bootstrap
 
-```shell
-fabric --host <ip-address> --port <port> --bootstrap --remote-anchors http://127.0.0.1/root-anchors.json
-```
-
-2. Create a pull request updating `constants.js` to include your bootstrap node.
-
+2. Submit a pull request updating `constants.js` with your node’s details.
 
 ## Encrypted Noise Connections
 
-Basic support for encrypted connections over named spaces is available. Use `beam serve` and `beam connect` and follow the CLI instructions.
+Basic support for encrypted connections over named spaces is available. Use `beam serve` and `beam connect`—follow the CLI instructions.
 
 ## Contributing
-We welcome contributions to Fabric! Please feel free to submit issues, feature requests, or pull requests to help improve the project.
+
+Contributions are welcome! Please submit issues, feature requests, or pull requests to help improve Fabric.
 
 ## License
+
 This project is licensed under the Apache 2.0 License. See the LICENSE file for details.
