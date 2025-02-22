@@ -7,19 +7,9 @@
 
 Fabric is a trustless, distributed DNS resolver built on top of [hyperdht](https://github.com/holepunchto/hyperdht), extending its capabilities to allow publishing signed zone files using [spaces](https://spacesprotocol.org) as keys authenticated by Bitcoin. [Spaces](https://spacesprotocol.org) are sovereign Bitcoin identities and serve as a trust anchor, while Fabric DHT enables publishing records off-chain without adding any unnecessary on-chain bloat.
 
-**Note:** Fabric currently defaults to Bitcoin testnet4 since spaces are not yet on Bitcoin mainnet.
-
-## Prerequisites
-To use `fabric` and `beam`, you need to:
-
-- Run Bitcoin Core on testnet4
-- Install and sync spaces 
-
-You may use [this guide](https://docs.spacesprotocol.org/getting-started/installation) to set these up.
 
 ## Installation
 
-After [setting up spaces](https://docs.spacesprotocol.org/getting-started/installation), install Fabric:
 
 ```shell
 npm install -g @spacesprotocol/fabric
@@ -31,69 +21,65 @@ npm install -g @spacesprotocol/fabric
 Use `beam` it's like a distributed `dig`!
 
 ```
-beam @onion TXT
+beam @buffrr TXT  --remote-anchors http://127.0.0.1:7225/root-anchors.json
 ```
 
-Space @now also has TXT records published.
+`--remote-anchors http://127.0.0.1:7225/root-anchors.json`: will load trust anchors file from your local spaces client connected to Bitcoin core.
 
-**Note**: `beam` will automatically connect to a locally run spaces node using its default port for `testnet4` to verify answers from the DHT.
+You may also specify a local anchors file e.g. `--local-anchors /path/to/root-anchors.json`
 
+## How to publish records for a space?
 
-## How to publish records for a Space?
-
-1. Create a zone file (e.g., example.zone) with an SOA record and the records you want to publish:
+1. Create a DNS zone file (e.g., example.zone) with an SOA record and the records you want to publish:
 
 
 ```
-@ORIGIN @example.
-
-; YOU MUST INCREMENT ZONE SERIAL WITH EACH UPDATE
-@    3600 CLASS2  SOA  . . ( 1 3600 600 604800 3600 )
-@    3600 CLASS2  TXT "Hello spaces!"
+@example. 3600 CLASS2  SOA  . . ( 1 3600 600 604800 3600 )
+@example. 3600 CLASS2  A    127.0.0.1
+@example. 3600 CLASS2  TXT "hello world"
 ```
 
-2. Find the space's private key using `space-cli`
+
+
+2. Sign it with `space-cli`
 
 ```shell
-space-cli --chain testnet4 exportwallet | grep '"spaces_descriptor"' | sed -E 's/.*(tprv[^\/]*).*/\1/'
+space-cli signzone example.zone
 ```
 
-it should look something like this:
-
-```
-tprv8ZgxMBicQKsPeUUxV746bQ9JmsytoyEeioAd9b962bQxcq7PfK8vRbFkSR7JD7ySoBoyswHX5vQvnhS95dHKUxW2maG2Tt7bJcCHsY66gNF
-```
+It will create `example.packet.json` that you can publish!
 
 
-3. Use `beam` to sign your zone file `example.zone`:
+3. Publish the file using `beam`:
 
 
 ```shell
-beam sign example.zone --private-key <private-key>
+beam publish example.packet.json
 ```
 
-Distribute the signed zone file (`example.zone.signed`) to the network:
+The network will keep it for up to 48 hours, then it will become stale and will be removed. 
 
-You can either:
-- Place it in the `--watch` directory of a running Fabric node
-- OR Share it with other Fabric node operators to have them keep it alive
+To refresh, and re-publish it:
+
+```shell
+space-cli refreshpacket example.packet.json
+beam publish example.packet.json
+```
+
+
+Alternatively, distribute the signed packet file (`example.packet.json`) to a Fabric service operator to continue to publish it for you. The packet is signed with your keys so you don't need to trust them!
 
 
 ## Running a Fabric node
 
-Run a node if you want to publish your own zones and also contribute to the network. Specify a reachable ip/port:
-
-**Note**: Fabric will automatically connect to a locally run spaces node using its default port for testnet4.
+Run a node to contribute to the network. Specify a reachable ip/port:
 
 ```
-fabric --host <ip-address> --port <public-port>
+fabric --host <ip-address> --port <public-port> --remote-anchors http://127.0.0.1/root-anchors.json
 ```
 
-Specify a directory to watch for publishing space zones:
+or you could use `--local-anchors /path/to/root-anchors.json`. Fabric will continue to watch changes to this file.
 
-```shell
-fabirc --host <ip-address> --port <public-port> --watch /path/to/signed/zone/files/directory
-```
 
 After about 30 minutes of uptime, your node will become persistent and contribute to the network's storage.
 
@@ -107,7 +93,7 @@ We could use more bootstrap nodes:
 1. Run a node with a reachable IP/Port specifying `--bootstrap` option
 
 ```shell
-fabric --host <ip-address> --port <port> --bootstrap
+fabric --host <ip-address> --port <port> --bootstrap --remote-anchors http://127.0.0.1/root-anchors.json
 ```
 
 2. Create a pull request updating `constants.js` to include your bootstrap node.

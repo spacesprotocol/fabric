@@ -1,0 +1,822 @@
+export const staticAnchors = [
+  {
+    root: 'b5be872a859411e754490d7573c7597fddae7e272166d4c4edf9c466b5ce258f',
+    block: {
+      hash: '00000000000000000000248690f6ad997277288b2df7682495ba5ed9d9b12b7a',
+      height: 884736
+    }
+  },
+  {
+    root: 'aee721c04abd3471d82b54f45770f61208353b6cbc0e7d3bd1f55b2bbd94ce77',
+    block: {
+      hash: '00000000000000000000e68cccff9ce4765635f94260e83343034d854bc4dea5',
+      height: 884700
+    }
+  },
+  {
+    root: 'e453c86331c192d7a707249acd331acf6163aba3a71309d06e4602e579f9f59c',
+    block: {
+      hash: '00000000000000000001035f86971f1a151ff51e01c69f7de767c1d93040f306',
+      height: 884664
+    }
+  },
+  {
+    root: 'fa5071e94490f982947d0fb34580a7ce2603869f8381186b00879063d6b5231b',
+    block: {
+      hash: '000000000000000000009536ce36d41ab39e6b8c508fa9231cf1da826dbaeb60',
+      height: 884628
+    }
+  },
+  {
+    root: '102bfdf0ed37dbfa69ec575c9f07bd753bf209071f39d84fc750f1fa5ac547e9',
+    block: {
+      hash: '000000000000000000020e95a8f7540b1193373b8d0fa20fe11fae9ed7b1d14b',
+      height: 884592
+    }
+  },
+  {
+    root: 'b96dcdd5bc26e8f5ca1ad3c2d65765f0c501159b435205ec5d527d0fa7bbbe77',
+    block: {
+      hash: '000000000000000000015d07cb4debcef48622fd4419f48932e7d728d7663390',
+      height: 884556
+    }
+  },
+  {
+    root: '3d1c036fdb60411d066a9f0d5030c43efeeed2d9d846cda04e5311d9c1482ce4',
+    block: {
+      hash: '00000000000000000000934714ad43fc187974051f95bffa020dae02e6f0280d',
+      height: 884520
+    }
+  },
+  {
+    root: '9c73e46684bfb779e462ae2adc77ea3540451210cf2944b3a62bdd3bf88e34ba',
+    block: {
+      hash: '00000000000000000000cf03b5053b2fd56201405c84e8a873cb119ed013c63f',
+      height: 884484
+    }
+  },
+  {
+    root: '2006ced0293ce939d80a91918ec052a80e14f12f915600baadfeb21922318f08',
+    block: {
+      hash: '0000000000000000000054c22e7b3ad4b53e426aa6006df86ab29c370c602bf4',
+      height: 884448
+    }
+  },
+  {
+    root: '22245405312e33e67ce2c9206e160ac545edc44c3870c29a85d31f311ac1c353',
+    block: {
+      hash: '000000000000000000004c201b369dbded428ce04bc03b37043cfeead44fce54',
+      height: 884412
+    }
+  },
+  {
+    root: 'bea75f8cbdc875b3e9ef205286d030c28941e0afe3e82424ef7b7e4350897820',
+    block: {
+      hash: '000000000000000000014752cc47bc831a0e06b2ff86cca66629468f0080ffea',
+      height: 884376
+    }
+  },
+  {
+    root: 'fec241054d041bef52ff77645e1e344a48edbb1f3c9303e31934fd4eba2daa60',
+    block: {
+      hash: '00000000000000000000194c3d01758e4deb88a43b6fe0429eba87323ea809ab',
+      height: 884340
+    }
+  },
+  {
+    root: 'b16c14e438f9cfdb01cc53082220a731473f7bc9c2c6c1b0ce3dce046d370165',
+    block: {
+      hash: '0000000000000000000257fa7758c26effb6c8c23fa59181d33870468485a84b',
+      height: 884304
+    }
+  },
+  {
+    root: '47bcd49412e4f2078c0ad83dda9a4abfb52a4eacc7183f9c889e3b242c8257cb',
+    block: {
+      hash: '00000000000000000001e148aa425d8e03cd2f8f54558fce7beb5196cc5a68e6',
+      height: 884268
+    }
+  },
+  {
+    root: 'f0e2118222c9f38f4d225cf6df22d29bf8d8fb96c36683866ab1cda61e70bd21',
+    block: {
+      hash: '000000000000000000022d86ff26453d71771022900645b480630ab3de660491',
+      height: 884232
+    }
+  },
+  {
+    root: '8d1edaf605b40ac6cc630ce07cd66740cfce2ef296d3d2df99f9cc66a3a7187d',
+    block: {
+      hash: '000000000000000000014967a92d25a643cd1b95cd4f26a7b04dfdf903b27dc1',
+      height: 884196
+    }
+  },
+  {
+    root: 'c33c6635af4ec7d35a03872e0ba62ce79c9b77d387199dc64636c3a0ffe3d849',
+    block: {
+      hash: '000000000000000000007cf45ea5d758d21905fa0f84eec92da3a2bb045b6842',
+      height: 884160
+    }
+  },
+  {
+    root: '0efa5b6c97c59a9a329193dd45813e92c66280d516c2a58576cea778b78f1504',
+    block: {
+      hash: '000000000000000000023eecd0921ebbc585ca88c0c4ca7913f7b63c2f93c7fb',
+      height: 884124
+    }
+  },
+  {
+    root: '4ce36085e6c5c2f27b7913ed4e0bcb5289197c98b6509c2cc397a1c7a47f5298',
+    block: {
+      hash: '00000000000000000001d98da9de458e4e081ea1bc02b61cbd9b2b805060fdea',
+      height: 884088
+    }
+  },
+  {
+    root: '03c5dec2c7dfcb4bb251eaba271dcf5023322aaecc439ad93c6c75654849c2a5',
+    block: {
+      hash: '00000000000000000001cbd1917c5a45c6ff1f802302c2f57a70f16554cc2f0d',
+      height: 884052
+    }
+  },
+  {
+    root: 'c39f975c65c14a11499afb6e1d622f809911b25d8c52421cf4f93972b05fd20a',
+    block: {
+      hash: '00000000000000000000dea80f3e7fe16b3ca54a145879dceb3ae06138b778dd',
+      height: 884016
+    }
+  },
+  {
+    root: '97c4ebe36a00e66755fc3a4c5ae5e7f841e744a4a6bb4d4fa7108cf133aa533a',
+    block: {
+      hash: '00000000000000000000df42fbf624d88672b053ceb6bd227d81995caea9a656',
+      height: 883980
+    }
+  },
+  {
+    root: '7c63e6ef054b7e0ce91f6938f5b4578a72807c34ba8174232867dee890221aa9',
+    block: {
+      hash: '00000000000000000001401bdc87bf179d7f822200c48a23e2e88a13cd97b76f',
+      height: 883944
+    }
+  },
+  {
+    root: 'e9bff0ad8c8e7618dcf63c6768d02d58251837dd1bc4607da2120f0d5823f38c',
+    block: {
+      hash: '00000000000000000000cf8bc9885fa862fcdf36b53bbf9c312d6288a670fcd7',
+      height: 883908
+    }
+  },
+  {
+    root: '7bdb229d7ca23694d73f5dae761a34a324c3cc75dd21d6022ed99d11cea1383c',
+    block: {
+      hash: '0000000000000000000233ab22acc230dff51831f93f899a6fbc4c492f5f3b6a',
+      height: 883872
+    }
+  },
+  {
+    root: '4fb4c49c2cc0d85134128e564c73378b1532dd336e5f5d2dd67a233baed072b7',
+    block: {
+      hash: '00000000000000000000cdf47719a4c1d6878b4159491561f76796fb8797dc1f',
+      height: 883836
+    }
+  },
+  {
+    root: '2a3184cae34522c5cc4e03cebeb34b324e3b56c344fb1b2528a1215e329c21d7',
+    block: {
+      hash: '0000000000000000000001089fffa6ccc546f3d1da340dff23d6dcb3927aea42',
+      height: 883800
+    }
+  },
+  {
+    root: 'e70dace12cf6debc52437bc34cfbcda8d68e9829bfc814cdcec53e63b5abb0e9',
+    block: {
+      hash: '00000000000000000001e486e21579fb5bb26af404f664b73ed2d5ac2d0353fe',
+      height: 883764
+    }
+  },
+  {
+    root: '0b7574d8db8e1eb3ea5958f9cb16f2844d6ae671ece54633ca91e2277d5ab6cd',
+    block: {
+      hash: '000000000000000000005499ed6d362d1f0cbc84a369562a16aa2e1b372fe388',
+      height: 883728
+    }
+  },
+  {
+    root: 'e5b023f1484aca3cdcce5889e68e3c128b5763c5dbe8c98b1a9733bb75b736a7',
+    block: {
+      hash: '00000000000000000001d746bdac01d07a60b79ba221a3bd4e463916b40dffbe',
+      height: 883692
+    }
+  },
+  {
+    root: '261d059c6d2a0aa6dcfa262d2ee9369093315d5799667e172f42192804987730',
+    block: {
+      hash: '000000000000000000012a95201b2c92e2cca8c296a38410669378701691d7ef',
+      height: 883656
+    }
+  },
+  {
+    root: '1c03a7956101597ebfb8adc4877a661d1e154b37cb844c8a0dbf90290d61b57e',
+    block: {
+      hash: '00000000000000000000ab60497b336b059477dc5a66ee580c2ea8633ce5aea6',
+      height: 883620
+    }
+  },
+  {
+    root: 'f8587271f08080d25a66911cb6b06b439b6f675705ff36024099a0f9edfaa9d5',
+    block: {
+      hash: '0000000000000000000260a692d46c52216a27fe15cfd9bc519a4b6fca50d149',
+      height: 883584
+    }
+  },
+  {
+    root: 'bcaf39dbd9249ff5138af4a706589282710fdd6cfa792d36a0baa300d8088ce3',
+    block: {
+      hash: '000000000000000000003d1d123f1956036de43b1201e13d58a4afdc40c507ec',
+      height: 883548
+    }
+  },
+  {
+    root: '851a1da14973992fee172d74de4efd28772dcd57a57ec003c53ad353fec0b9b3',
+    block: {
+      hash: '00000000000000000000af6b45ee348f61f6c5e45b335b0f901050dff70d0f33',
+      height: 883512
+    }
+  },
+  {
+    root: '877e60824977f5bb6a6642381b639b28e033e6994697e008180336a1789b2bc1',
+    block: {
+      hash: '00000000000000000001308457aa18d5173325c9c6a259db3c6bfe41ba55b88e',
+      height: 883476
+    }
+  },
+  {
+    root: 'f83fd4a04f3d90db5c09b57d3c2daa41036da0a520b0510acc1a1b692ed3a478',
+    block: {
+      hash: '00000000000000000002454616587d903eb8a1b04272cc65fe2cf9ff08f7dc67',
+      height: 883440
+    }
+  },
+  {
+    root: '9886bf0671d501bdbe56ee8a170e0f2457162d3bd4499b8a72b72d1948725dc3',
+    block: {
+      hash: '000000000000000000014e12d6815b2dc72d244f8b392fb0ddf540d574e08c55',
+      height: 883404
+    }
+  },
+  {
+    root: 'f75e3d5b7afb9c99c6c68029cf3553c74e8e7ad44051ba305a0ef9e9ab5447f3',
+    block: {
+      hash: '000000000000000000010391b698e8cfe2bc9a69015940792b87aa98315bd3cb',
+      height: 883368
+    }
+  },
+  {
+    root: '320910bf0977aefb4e6ff949c5706d8e8e2bb16e94e33c1e834937cd5eea4f83',
+    block: {
+      hash: '00000000000000000000ee6c55d2b99aa932382b0ede38dd18b2a1f31b8b3b14',
+      height: 883332
+    }
+  },
+  {
+    root: '4616950c3f73f558f4943e07006e3f154c853492e914063642003fed7ba16815',
+    block: {
+      hash: '00000000000000000001408fd44b65d70ae0fa58380a1a71053d006ac58846d1',
+      height: 883296
+    }
+  },
+  {
+    root: '0b4fb755120f6b898fa4b5336c7b19f141c5018499bbf010181a3cd628388c77',
+    block: {
+      hash: '00000000000000000001b0edc437477710419c266aa92281e3638f8ab353f52b',
+      height: 883260
+    }
+  },
+  {
+    root: '6fa3a83d70f9d8d9838aaafe8302d08eb1632390fdfa78b757425deef013fb0d',
+    block: {
+      hash: '000000000000000000012809e6e5c800302a399788d3cfe1a889a77ac0704349',
+      height: 883224
+    }
+  },
+  {
+    root: '13dbb8b122ffb6768ed69074831cbe16aef2874815cbbc1452eeddfc61fda2b2',
+    block: {
+      hash: '00000000000000000001778bcbd65816f9d0944345448f4fa19f17946ab59078',
+      height: 883188
+    }
+  },
+  {
+    root: '19dd0d31993ee55aba75fd89eb41351b65e92de5bd2b5bca093ad1d8488a6603',
+    block: {
+      hash: '000000000000000000022357f0769700ba1c1b992fadb65e92f615a138884bad',
+      height: 883152
+    }
+  },
+  {
+    root: '87d1a3a20af4d113e7ebe267e595306a3a6d14163711a1e50d20033f14d9a7a3',
+    block: {
+      hash: '000000000000000000003ec237e03f3b178a431e0eadae9c07a871b2046d9939',
+      height: 883116
+    }
+  },
+  {
+    root: '855d682da97de0809b6bdfec320935731ae5313ed04ca13df24e9438f8f6cb46',
+    block: {
+      hash: '00000000000000000001753b8b9e07736524cebe1caa4729a3e7a0439d19fb2a',
+      height: 883080
+    }
+  },
+  {
+    root: 'fa25d23ba905488b249f8a137c6fc7c19b8ab07f827ef8e31c23e6b2211ff5c2',
+    block: {
+      hash: '00000000000000000001c05bdbc2a63b9500b035e03a4fa4d3a540bc4dfd207a',
+      height: 883044
+    }
+  },
+  {
+    root: '909b5e9d00775302df7f278f660096821728e9ae689845cfa6bd07731e53eda0',
+    block: {
+      hash: '000000000000000000004530f52447ef7a324b3202c4ced81d50650afe7511bf',
+      height: 883008
+    }
+  },
+  {
+    root: '468e9088964b17f4262f0d14f013b59605a7fe92b9d7d91686656b49c52dca4d',
+    block: {
+      hash: '00000000000000000001c23bad3871770db28e6d2c998d06e03e0c993d83d04a',
+      height: 882972
+    }
+  },
+  {
+    root: 'b898217517022bf92dfe8381b118c50c1f1913e4ef80bd7a04918d674c06e18f',
+    block: {
+      hash: '000000000000000000012db41ce40b24d9b2efd70c031a2fa00a8bd0df21a0d1',
+      height: 882936
+    }
+  },
+  {
+    root: '86963e0c8fcf680c4c82d57a2642c85d6c202a2e8c5ebb52d28cc1a3f3925094',
+    block: {
+      hash: '00000000000000000000d77544c6ca99aebb3d2348506954a0c5ce73abaac8f3',
+      height: 882900
+    }
+  },
+  {
+    root: '37f0056f089416d96cb93affe758981b0d17a2364cf0b7e60b8b9395d62a7829',
+    block: {
+      hash: '0000000000000000000216da8b1983a80b8a38e87780eaa0325b8d0f78d0f20a',
+      height: 882864
+    }
+  },
+  {
+    root: 'dddb242df182df9a16aab4bd012fe2dfa48b753be8e393a5d6315e1cd31902cc',
+    block: {
+      hash: '000000000000000000021d21664a5c51990d3b0434a869c0bc237a418a1b4bd3',
+      height: 882828
+    }
+  },
+  {
+    root: '61896feb240905d9ebe4656384ea189e19597ca42182864a5c6840c5f2aec8ca',
+    block: {
+      hash: '000000000000000000029719ce8d87923aa32d73f61b4b022c5f0da534ac5e09',
+      height: 882792
+    }
+  },
+  {
+    root: 'd52ac84b2bb617b0ede53cab4bffa1cb9583f8c8728df947997a4959df5e1070',
+    block: {
+      hash: '00000000000000000001ce8df7d731e2156f5692b52f3147dfbeb82ce4d08ef9',
+      height: 882756
+    }
+  },
+  {
+    root: 'd208cb5f4227a3168c28aaff797802df29272b2823376e72c73833045c0f0c17',
+    block: {
+      hash: '0000000000000000000139f5eb2fa7ada68a1f7c8beb1423cd9815926c317a83',
+      height: 882720
+    }
+  },
+  {
+    root: 'cc2e36ad9b53e4379bfb973903cefd4b087304353a5a838108f379f2f4c0c1bc',
+    block: {
+      hash: '00000000000000000000e26f02f9b554a4efa0be131336237df618f1c1d29e18',
+      height: 882684
+    }
+  },
+  {
+    root: '624692e6bd8a60d77491f48d2aa7a9b53b952503e5e7d924720616e94a39af8f',
+    block: {
+      hash: '00000000000000000001a90c82606fbdd6f481697544be4c174462e77f3d88d3',
+      height: 882648
+    }
+  },
+  {
+    root: '106b31663dc68d5c10d251f0953b73bb58ae65c83110649a6787c9cf3d9f880b',
+    block: {
+      hash: '00000000000000000000208504444b61865915f9fc528e05baeaf954d7de5e64',
+      height: 882612
+    }
+  },
+  {
+    root: 'd82709740a5bac979bc9e1ca4bed12a3aebc3ad518c3be5866cea37185773fdf',
+    block: {
+      hash: '000000000000000000005f9642f2eeb29c40e22d7ac85d77648f38b8f29fa690',
+      height: 882576
+    }
+  },
+  {
+    root: '00c25b1cb8f1b234fdf902ede36cb7f686b58554e2b8aab604da494951567af8',
+    block: {
+      hash: '00000000000000000001addeb5567755b8adaec026c181dc2bc0684da3d33bc9',
+      height: 882540
+    }
+  },
+  {
+    root: '90a0441d86bbdf464a0b2039e6f1668ed153b2896f8f4f16b624a184ae666396',
+    block: {
+      hash: '000000000000000000003de1ba3c12ae86f612c91a5e09c2cb2267374599653c',
+      height: 882504
+    }
+  },
+  {
+    root: '91c14511e7208c1c61ab0946a091a6a2f1cb2c494eaacf97d6628999be6605c9',
+    block: {
+      hash: '00000000000000000001544cdd51fa2e4482903667af953eca56dc12830e6ca6',
+      height: 882468
+    }
+  },
+  {
+    root: '1ad189138cf13c6baf7a8724ab2dbc0a279a9a123e5798be241171b8f319940c',
+    block: {
+      hash: '0000000000000000000247fab9c59a2979a59dcdf3fb06c5e46710fabd43079f',
+      height: 882432
+    }
+  },
+  {
+    root: 'fbac7ed7c36fa37f1309dc29fd1c27be2eee73eede1f2442bf745c121dcb80b3',
+    block: {
+      hash: '00000000000000000000a52ba005452738ccc2bede8433decb09ada90e76d5b0',
+      height: 882396
+    }
+  },
+  {
+    root: 'f3a309e194203dd361482c3e6f18262b4f67cf5e6a069889dfa0fe28139fd9b1',
+    block: {
+      hash: '000000000000000000024ef3066746fcf756ad12c0d5c86624bc0a8d7b7cd332',
+      height: 882360
+    }
+  },
+  {
+    root: '7b33be0281458958c0b3aba83a2f6cfd266a62d840fbee51e428d71efec77af3',
+    block: {
+      hash: '0000000000000000000126a3af4b991745234176b44944dcac02301d0ff3f849',
+      height: 882324
+    }
+  },
+  {
+    root: 'd20d9513778bd4d36afc2d008e48bacfbaed31877aeb88e8d7014327fac6118d',
+    block: {
+      hash: '000000000000000000001a8364031208177ec999c687c4a5e41f763a06c23883',
+      height: 882288
+    }
+  },
+  {
+    root: 'f80d9b1356daca696835e4ee8961627a3fa99c8eb277a05994101bc2dbcc386b',
+    block: {
+      hash: '000000000000000000014b8ba8d6464e07cf5d781e3b418275b19c8eeb16a893',
+      height: 882252
+    }
+  },
+  {
+    root: 'a4eef5cbd58d402183a8c3e723bd06b346c023b2d208f602c433ba1560712341',
+    block: {
+      hash: '000000000000000000028ab2ae76bd0f037dc28757e86196d2a6a85f677ad283',
+      height: 882216
+    }
+  },
+  {
+    root: '46f404e5bce23011856e6836705ed1bf4955d3da9ca528f6b3b6641531075a8d',
+    block: {
+      hash: '0000000000000000000188d6f668ac2a5e61bef62858041c6b59ba457b358e61',
+      height: 882180
+    }
+  },
+  {
+    root: '83a0e0be9bc1b8e9d7f9add19594e5471b782bf663156fac503bcad26595ab22',
+    block: {
+      hash: '000000000000000000018c371a623ebc6aa39989214387ce07d2925fcdff94ca',
+      height: 882144
+    }
+  },
+  {
+    root: 'dcac635a6aa0afafad6e4d48c03e3d00edfb095319c600be1f6d4ce6c76e132a',
+    block: {
+      hash: '00000000000000000000cffdcac9bda2757bbda3a233cfbed7113c9f30cf04dc',
+      height: 882108
+    }
+  },
+  {
+    root: '35fb2e25c07004a9df9cd78ec485c1b8a7f28416e57b55bf6a283ac66e829afd',
+    block: {
+      hash: '0000000000000000000087a87a1d3cc8de7888ec5f61cc1bdd90e2ac5d2a3b09',
+      height: 882072
+    }
+  },
+  {
+    root: 'a184cf2327194936b2b714e802d3fd520f7c82cd62edcc8afc646ad25e151e75',
+    block: {
+      hash: '00000000000000000000f24d49236f9feba1f98db989a7e24ab74f02aa458552',
+      height: 882036
+    }
+  },
+  {
+    root: '4b5857c91189d80bfb0e3cc708d448d0579deb899d68484b5863b787ba395ba2',
+    block: {
+      hash: '000000000000000000023eced16719b1b3e187f882371515630e9ff6cee6a3ee',
+      height: 882000
+    }
+  },
+  {
+    root: '5fe9a904980bbc3ffbde4ef0ad29070b73e07ae3e76ced3161f8529dad37c150',
+    block: {
+      hash: '00000000000000000001a9d9481b1433ac350990d3a590075ff9f2cce34a2478',
+      height: 881964
+    }
+  },
+  {
+    root: '713ddebc02cc73409c7eee1ee85d4c8ad5dda6925c10d5a3a8ef0052015fba95',
+    block: {
+      hash: '000000000000000000024ce52f66fd2f4ce1102555a8b9acf63e5171d56e1375',
+      height: 881928
+    }
+  },
+  {
+    root: '6d14163981ccaf229d325d0859c17fcd97d9b6231d58ef474b138c13ec2a6026',
+    block: {
+      hash: '000000000000000000022d2414fc847650d7af9bf1242f0bf54ed2f47c8f62ac',
+      height: 881892
+    }
+  },
+  {
+    root: '34a3433a71e0ba315e5dd05eabc1997230a74af4d9595f2e36257cadc19b472c',
+    block: {
+      hash: '00000000000000000000a178113e7819d50f44379485870b7dac045ca75961f9',
+      height: 881856
+    }
+  },
+  {
+    root: '5328e8a1f6b0b4d3f89b0f41ed382cbf43fa5e980cef5420538fa2695225a15f',
+    block: {
+      hash: '000000000000000000008346a1dd21ea24bdae2dd22a5d8264d18e0627d361fa',
+      height: 881820
+    }
+  },
+  {
+    root: '27cd54c48c4b08c3e4a32e4448435596405c9f1ca508e0c0c2c9b57d4654e1da',
+    block: {
+      hash: '000000000000000000001600ba3162e60d265e9b68b8db34c1e8011c58ea367d',
+      height: 881784
+    }
+  },
+  {
+    root: 'e8e8c96bc33fdc2361bdc5c0cf295940e2cf0a495b761d99cfa076761c42fcfa',
+    block: {
+      hash: '000000000000000000011898fefbd573f48b90d24e0930f7aa72625ed4a96f23',
+      height: 881748
+    }
+  },
+  {
+    root: '07033be95007008ca13d058e58ff26fcb472f69ddb0976c942125f9627b2c876',
+    block: {
+      hash: '00000000000000000000b3f88996d913cf430b6c1b96c2ee2473106f611dafb3',
+      height: 881712
+    }
+  },
+  {
+    root: 'af7f56ab711b1e32d17496e40d4fea1d8e8b374cf95d57f315a70a6fc32ae045',
+    block: {
+      hash: '000000000000000000022247ce3898fc9e10be0161cde5f369293d7a916ca8b3',
+      height: 881676
+    }
+  },
+  {
+    root: 'de24406f7a853bba092d687aa712604290f877c44a1de27d81026925cc6b9030',
+    block: {
+      hash: '000000000000000000021ce45cd129bbaf9caa27edfeca4b030ac2422da9a0e6',
+      height: 881640
+    }
+  },
+  {
+    root: '9467ab0f60a31269911de291b7373eeedc0e7a401f0fff4ca49fa70c7317aa01',
+    block: {
+      hash: '00000000000000000001b897d4667c18aea035322512404fc9d75595c75377e1',
+      height: 881604
+    }
+  },
+  {
+    root: 'f75975eae72cf3a341cb1820ab1b3f9a8a3c01025904ecf9298f78356d0cb25a',
+    block: {
+      hash: '00000000000000000001bd88789d506275df37f3fcf24473040e075ec304ed02',
+      height: 881568
+    }
+  },
+  {
+    root: '68b075a509ad5ae4874b32866343b25cc99e5403c6307241a60992ebdd9e3963',
+    block: {
+      hash: '00000000000000000001300f56ab1d2f75e88c9a14317b667e5901ca434acd36',
+      height: 881532
+    }
+  },
+  {
+    root: '8781cdbfe81ebc4503d6d768d1c205d48f293517e09220f5d89c7a5d8de0e138',
+    block: {
+      hash: '00000000000000000001f79a8009621c497046412e61908bb6503fb052d2ba56',
+      height: 881496
+    }
+  },
+  {
+    root: '973cdbdbbe1f117570677c4c310120520919e4c819ef49707dbdebb5e77f990c',
+    block: {
+      hash: '00000000000000000002244e97a52e20087be43f38e7a25fa85acaaac0792ea8',
+      height: 881460
+    }
+  },
+  {
+    root: 'c6ddbf029007740053d418f422d0ab0ced272b33cef6e68e4d283c2124a191e5',
+    block: {
+      hash: '000000000000000000017b20a1eda0f8cec8a7fe17744dacd9fac5961cd70b72',
+      height: 881424
+    }
+  },
+  {
+    root: '5bb6bd079e09cf5f61f4bce5ea0429ea4be5ba21b906da6a16b3579e62bf9397',
+    block: {
+      hash: '00000000000000000001bbfc958eccdb26b414a6fd97188fbd0b65734eb9f4b4',
+      height: 881388
+    }
+  },
+  {
+    root: 'db7b0c3ee5570a84d73926f91f0d8d543da374cec082483b3f774fdb567adde0',
+    block: {
+      hash: '000000000000000000002437134508f6de903499641702f576c5c835ea2ccd6e',
+      height: 881352
+    }
+  },
+  {
+    root: '2233a3e2f0c1dbf3746250affd0dda9d3ee533ea48cdaf7e51fa63eb448a4026',
+    block: {
+      hash: '00000000000000000000d51378ae7efa5652bfe59238a5299238ad10a106efad',
+      height: 881316
+    }
+  },
+  {
+    root: '0e9e3e1e604b6c9e6104ad54e318f9db4431ca1dce597c7db376131d8a1564a8',
+    block: {
+      hash: '00000000000000000000b6097f22ed9c6ed881a876025f582220252b8c56cdd1',
+      height: 881280
+    }
+  },
+  {
+    root: '1000b6ccda30b909989daf6b8ad0cdd454566df776d567e27f8bb866710ff473',
+    block: {
+      hash: '0000000000000000000203367d31d027c1bdec424385971f6134eda046634ecc',
+      height: 881244
+    }
+  },
+  {
+    root: '80ed2268a1bc7ead3b99ebace4147df35d57428e223dd467f3112ca64b8fa11b',
+    block: {
+      hash: '00000000000000000001a59273398c45d3c16d1f82aab52bc4fb45b42814e5e0',
+      height: 881208
+    }
+  },
+  {
+    root: '22041637ab2e4afa01ab011653b1f39640773ff93ca3d9f9ebd8360b312bdd20',
+    block: {
+      hash: '00000000000000000001755458b510d16dbbfe9acbfd267c54d4983847db6a35',
+      height: 881172
+    }
+  },
+  {
+    root: '3998f191bbdd584b5190a233306d1b32226e4ef20a30c25e99c90d061560210f',
+    block: {
+      hash: '000000000000000000007b5f914aaa218fa9feb234322cd3cbd8b0c0e67d535d',
+      height: 881136
+    }
+  },
+  {
+    root: 'ed50b025cc0a10c168f89036eddc578436e223f61c689a83f6d0d7e0d15155ed',
+    block: {
+      hash: '000000000000000000001b7d47676281b70e9c7e05e73c9cadb7afaaf17d6ef5',
+      height: 881100
+    }
+  },
+  {
+    root: 'aa7b489df45f4c8a46fb6af1c9e215dfec2c94444042886a3ea7618ef82d418c',
+    block: {
+      hash: '00000000000000000002718db17871a743fd5b59d9e1eef939690d481947e396',
+      height: 881064
+    }
+  },
+  {
+    root: '123e194f5d17c8eee963eda124820d4016fd0942a2a5302e0e0d2626f504af7e',
+    block: {
+      hash: '00000000000000000001da7042b9329d532b3cfe882ac9e11c565b53fce5d26e',
+      height: 881028
+    }
+  },
+  {
+    root: 'c9e3f237debe01f1326f00897f39fbfa8e66fae8c02501cdb502d3b0e71f2d86',
+    block: {
+      hash: '00000000000000000002472ac2ebac866c74e35c870cd6f8193bd98296361883',
+      height: 880992
+    }
+  },
+  {
+    root: '30ede67ebacceb164e9a22b2f65cc734b23b16312394176bc627d8e075280d69',
+    block: {
+      hash: '000000000000000000017b8c084e8d6c879ca5b832e76eab14c10fa6d457f229',
+      height: 880956
+    }
+  },
+  {
+    root: '11e793e65dee4cc5d0e4930d73dd6c26083fce59ebd4220c50378e44173a2622',
+    block: {
+      hash: '0000000000000000000086ca2db99e3a1698830f72091bb5c355415ee009d03f',
+      height: 880920
+    }
+  },
+  {
+    root: '1fa30ebfd76d3e8a473f6ee84c68d9619acc16dafc2133e4702113b7ef0af4a6',
+    block: {
+      hash: '00000000000000000001e01fb713e56a2761cdf34ae819b3005b19137fbf5964',
+      height: 880884
+    }
+  },
+  {
+    root: '5c9ff7d202f1f6498719b5f53865f7c47a34a848127590ba353aea7a7f1c52c2',
+    block: {
+      hash: '000000000000000000021f8423f55093eb4e5bfc357013d4c191c6f776717c5e',
+      height: 880848
+    }
+  },
+  {
+    root: '12de6d90515302d465bb3886574351b3d730998e9fbc3b10ac19e2467b2908ec',
+    block: {
+      hash: '0000000000000000000263d1745e4b14aeb77643aefa5a4d3b10d299d0544a2d',
+      height: 880776
+    }
+  },
+  {
+    root: 'e4076488dfa64974b4b59e263e79995a183d8ace42cfd65bd3a12065c25d5b2e',
+    block: {
+      hash: '00000000000000000001caa6dd86d851374a8fbf7e314d8ffed3848e4a1b2afa',
+      height: 880740
+    }
+  },
+  /* not an actual anchor */
+  {
+    root: 'e4076488dfa64974b4b59e263e79995a183d8ace42cfd65bd3a12065c25d5b2e',
+    block: {
+      hash: '00000000000000000001caa6dd86d851374a8fbf7e314d8ffed3848e4a1b2afa',
+      height: 880720
+    }
+  },
+  {
+    root: 'ee6bc6e95bf8d28de119c7973106fdb8a78057eab21238a25d0140f53c49a9ec',
+    block: {
+      hash: '0000000000000000000005e681ab128ae345ee51c8b34d9e90c13609be4ea42f',
+      height: 880704
+    }
+  },
+  {
+    root: '0ed8e48ac402cb6d280467fd42301e7b2818adc3f412b4066d2bde8d95495575',
+    block: {
+      hash: '0000000000000000000259dbb6d2fe81e1aed0b529a1a281bc4e4d35e770f6a2',
+      height: 880668
+    }
+  },
+  {
+    root: '83c6f24dd00af87a8defd784b9c1e49a4cf2df2f356c834a2046c3832a1851d2',
+    block: {
+      hash: '000000000000000000026f3872cb80cf5e94b5f657fbec2168f08c86c18f465f',
+      height: 880632
+    }
+  },
+  {
+    root: 'f8457df66819d045b806684e3137d95fa191680e0f46e34ecd434120630f6bf5',
+    block: {
+      hash: '00000000000000000000a3d728a735c8b6f5e57738e25ab465188e745c947abc',
+      height: 880596
+    }
+  },
+  {
+    root: 'c76ac8b52551594e251faf77137b4dcff27c9305c3ee8034d422e2ce4e1fffc2',
+    block: {
+      hash: '000000000000000000008d908fc86278cc0aa2039c5fe13e4083f7b3356ab2ef',
+      height: 880560
+    }
+  }
+];

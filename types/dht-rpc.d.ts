@@ -1,5 +1,5 @@
 declare module 'dht-rpc' {
-    import EventEmitter from "node:events";
+    import EventEmitter from 'node:events';
 
     export interface DHTOptions {
         bootstrap?: (string | Node)[];
@@ -43,7 +43,7 @@ declare module 'dht-rpc' {
     }
 
     export class Query {
-        constructor(
+      constructor(
             dht: DHT,
             target: Buffer | Uint8Array,
             findClosest: boolean,
@@ -52,67 +52,67 @@ declare module 'dht-rpc' {
             opts?: QueryOptions
         );
 
-        get closestNodes(): Array<Node>;
-        finished(): Promise<void>;
-        destroy(error?: Error): void;
+      get closestNodes(): Array<Node>;
+      finished(): Promise<void>;
+      destroy(error?: Error): void;
 
-        [Symbol.asyncIterator]();
+      [Symbol.asyncIterator]();
 
-        on(event: 'data', listener: (data: any) => void): this;
-        on(event: 'error', listener: (error: Error) => void): this;
+      on(event: 'data', listener: (data: any) => void): this;
+      on(event: 'error', listener: (error: Error) => void): this;
 
-        finished(): Promise<void>;
+      finished(): Promise<void>;
     }
 
     export class DHT extends EventEmitter {
-        constructor(opts?: DHTOptions);
+      constructor(opts?: DHTOptions);
 
-        static bootstrapper(port: number, host: string, opts?: DHTOptions): DHT;
+      static bootstrapper(port: number, host: string, opts?: DHTOptions): DHT;
 
-        id: Buffer | null;
-        online: boolean;
-        bootstrapped: boolean;
-        firewalled: boolean;
-        destroyed: boolean;
-        stats: Record<string, any>;
+      id: Buffer | null;
+      online: boolean;
+      bootstrapped: boolean;
+      firewalled: boolean;
+      destroyed: boolean;
+      stats: Record<string, any>;
 
-        address(): Address;
+      address(): Address;
 
-        localAddress(): Address | null;
+      localAddress(): Address | null;
 
-        remoteAddress(): Address | null;
+      remoteAddress(): Address | null;
 
-        bind(): Promise<void>;
+      bind(): Promise<void>;
 
-        destroy(): Promise<void>;
+      destroy(): Promise<void>;
 
-        suspend(): Promise<void>;
+      suspend(): Promise<void>;
 
-        resume(): Promise<void>;
+      resume(): Promise<void>;
 
-        findNode(target: Buffer | Uint8Array | null, opts?: QueryOptions): Query;
+      findNode(target: Buffer | Uint8Array | null, opts?: QueryOptions): Query;
 
-        query(request: { target: Buffer | Uint8Array | null; command: number; value?: Buffer | Uint8Array | null }, opts?: QueryOptions): Query;
+      query(request: { target: Buffer | Uint8Array | null; command: number; value?: Buffer | Uint8Array | null }, opts?: QueryOptions): Query;
 
-        request(opts: RequestOptions, from: Node, opts?: any): Promise<any>;
+      request(opts: RequestOptions, from: Node, opts?: any): Promise<any>;
 
-        onrequest(req: any) : boolean;
+      onrequest(req: any) : boolean;
 
-        ping(node: Node, opts?: { size?: number; session?: any; ttl?: number }): Promise<any>;
+      ping(node: Node, opts?: { size?: number; session?: any; ttl?: number }): Promise<any>;
 
-        addNode(node: Node): void;
+      addNode(node: Node): void;
 
-        toArray(opts?: { limit?: number }): Node[];
+      toArray(opts?: { limit?: number }): Node[];
 
-        session(): Session;
+      session(): Session;
 
-        ready(): Promise<void>;
+      ready(): Promise<void>;
 
-        fullyBootstrapped(): Promise<void>;
+      fullyBootstrapped(): Promise<void>;
 
-        static OK: number;
-        static ERROR_UNKNOWN_COMMAND: number;
-        static ERROR_INVALID_TOKEN: number;
+      static OK: number;
+      static ERROR_UNKNOWN_COMMAND: number;
+      static ERROR_INVALID_TOKEN: number;
     }
 
     export interface Address {
@@ -121,6 +121,7 @@ declare module 'dht-rpc' {
     }
 
     export class Session {
-        constructor(dht: DHT);
+      constructor(dht: DHT);
     }
 }
+
