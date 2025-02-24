@@ -2,7 +2,7 @@ import { program } from 'commander';
 import { FabricOptions } from '../index';
 import { VeritasSync } from '../veritas';
 
-interface MainOptions {
+export interface MainOptions {
     host?: string;
     seeds?: string[];
     peers?: string[];
