@@ -56,8 +56,8 @@ class Beam {
   async connect(space: string, path: string): Promise<void> {
     try {
       const {zone} = await this.resolveZone(space, true);
-      if (!zone.answers) throw new Error('Expected an answer section in the packet');
-      const dnslink = zone.answers.find(a => a.type === 'TXT' && a.name === '_dnslink.' + space);
+      if (!zone.authorities) throw new Error('Expected an authorities section in the DNS update packet');
+      const dnslink = zone.authorities.find(a => a.type === 'TXT' && a.name === '_dnslink.' + space);
       // @ts-ignore
       let data = dnslink?.data.toString();
       const prefix = 'dnslink=/fabric/';
@@ -322,7 +322,7 @@ program
       const signable = c.encode(m.zoneSignable, {seq: payload.seq, value: payload.value});
       beam.fabric.veritas.verifyPut(payload.target, signable, payload.signature, payload.proof);
 
-      await beam.fabric.publishZone(payload.target, payload.value, payload.signature, payload.proof, {
+      await beam.fabric.zonePublish(payload.space, payload.value, payload.signature, payload.proof, {
         seq: payload.seq
       })
       console.log(`✓ Published ${payload.space} (serial: ${payload.seq})`);

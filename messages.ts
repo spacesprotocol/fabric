@@ -17,6 +17,7 @@ export interface ZoneGetResponse {
   value: Uint8Array | null;
   signature: Uint8Array;
   root: Uint8Array;
+  publicKey: Uint8Array;
   proof: Uint8Array | null;
 }
 
@@ -69,6 +70,7 @@ export const zoneGetResponse = {
     c.buffer.preencode(state, m.value);
     c.fixed64.preencode(state, m.signature);
     c.fixed32.preencode(state, m.root);
+    c.fixed32.preencode(state, m.publicKey);
     c.buffer.preencode(state, m.proof);
   },
   encode(state: any, m: ZoneGetResponse): void {
@@ -76,6 +78,7 @@ export const zoneGetResponse = {
     c.buffer.encode(state, m.value);
     c.fixed64.encode(state, m.signature);
     c.fixed32.encode(state, m.root);
+    c.fixed32.encode(state, m.publicKey);
     c.buffer.encode(state, m.proof);
   },
   decode(state: any): ZoneGetResponse {
@@ -84,6 +87,7 @@ export const zoneGetResponse = {
       value: c.buffer.decode(state),
       signature: c.fixed64.decode(state),
       root: c.fixed32.decode(state),
+      publicKey: c.fixed32.decode(state),
       proof: c.buffer.decode(state),
     };
   },

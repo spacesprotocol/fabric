@@ -74,6 +74,37 @@ export class Fabric extends HyperDHT {
     return super.bootstrapper(port, host, opts)
   }
 
+  async zonePublish(space: string, value: Buffer, signature: Buffer, proof: Buffer, opts: any = {}) {
+    const target = spaceHash(space);
+    const seq = opts.seq || 0;
+    const signed = c.encode(m.zonePutRequest, {seq, value, signature, proof});
+    opts = {
+      ...opts,
+      map: mapZone,
+      commit(reply: any, dht: any) {
+        const q = async () => {
+          const q = await dht.request({
+            token: reply.token,
+            target,
+            command: COMMANDS.ZONE_PUT,
+            value: signed,
+          }, reply.from);
+          if (q.error !== 0) {
+            const err = ERROR_STRING[q.error] || 'unknown';
+            throw new Error(`put request failed - ${err} (code: ${q.error})`);
+          }
+          return q;
+        };
+        return q();
+      },
+    };
+
+    const query = this.query({target, command: COMMANDS.ZONE_GET, value: c.encode(c.uint, 0)}, opts);
+    await query.finished();
+
+    return {target, closestNodes: query.closestNodes, seq, signature};
+  }
+
   async zoneGet(space: string, opts: any = {}) {
     const target = spaceHash(space);
     let refresh = opts.refresh || null;
@@ -143,35 +174,7 @@ export class Fabric extends HyperDHT {
     return Promise.resolve()
   }
 
-  async publishZone(target: Buffer, value: Buffer, signature: Buffer, proof: Buffer, opts: any = {}) {
-    const seq = opts.seq || 0;
-    const signed = c.encode(m.zonePutRequest, {seq, value, signature, proof});
-    opts = {
-      ...opts,
-      map: mapZone,
-      commit(reply: any, dht: any) {
-        const q = async () => {
-          const q = await dht.request({
-            token: reply.token,
-            target,
-            command: COMMANDS.ZONE_PUT,
-            value: signed,
-          }, reply.from);
-          if (q.error !== 0) {
-            const err = ERROR_STRING[q.error] || 'unknown';
-            throw new Error(`put request failed - ${err} (code: ${q.error})`);
-          }
-          return q;
-        };
-        return q();
-      },
-    };
 
-    const query = this.query({target, command: COMMANDS.ZONE_GET, value: c.encode(c.uint, 0)}, opts);
-    await query.finished();
-
-    return {target, closestNodes: query.closestNodes, seq, signature};
-  }
 
   onzoneput(req: any) {
     if (!req.target || !req.token || !req.value) return;
@@ -184,9 +187,12 @@ export class Fabric extends HyperDHT {
 
     const msg = c.encode(m.zoneSignable, {seq, value});
     let receipt: Receipt | null = null;
+    let publicKey : Uint8Array | undefined;
     try {
       // Validate the proof first.
       receipt = this.veritas.verifyPut(req.target, msg, signature, proof);
+      publicKey = receipt.spaceout.getPublicKey();
+      if (!publicKey) throw new Error('Expected a public key');
     } catch (e: any) {
       console.error(e);
       req.error(typeof e == 'string' && e.includes('NoMatchingAnchor') ?
@@ -213,9 +219,7 @@ export class Fabric extends HyperDHT {
         return;
       }
 
-      // If the values are not identical, it's likely that the public key
-      // was updated indicating a potential transfer.
-      const pubkey_changed = !identical;
+      const pubkey_changed = b4a.compare(publicKey , existing.publicKey) !== 0;
       if (pubkey_changed) {
         // We only require that the new proof is higher than the stored proof.
         if (existingProofSeq && receipt.proofSeq <= existingProofSeq) {
@@ -252,6 +256,7 @@ export class Fabric extends HyperDHT {
       value,
       signature,
       root: receipt.root,
+      publicKey,
       proof
     }));
     req.reply(null);
