@@ -241,10 +241,9 @@ class Beam {
   }
 
   async resolveZone(space: string, latest: boolean = false): Promise<ResolveZoneResponse> {
-    const target = spaceHash(space.slice(1));
     const start = performance.now();
     const qtime = now();
-    const res = await this.fabric.zoneGet(target, {latest});
+    const res = await this.fabric.zoneGet(space, {latest});
     const elapsed = performance.now() - start;
 
     if (!res) throw new Error('No records found');
@@ -259,7 +258,7 @@ class Beam {
       zone,
       space,
       closestNodes: res.closestNodes,
-      size: value.length + signature.length,
+      size: value.length + signature.length + proof.length,
       signature,
       proof,
       peer: from,
@@ -275,7 +274,7 @@ program.name('beam');
 
 program
   .command('@example [options...]')
-  .option('--latest', 'Fine the latest version of a zone')
+  .option('--latest', 'Find the latest version of a zone')
   .description('Query space\'s records')
   .action(async (options: string[], _: any, cmd: any) => {
     const opts = cmd.optsWithGlobals();
@@ -293,7 +292,7 @@ program
         return;
       }
 
-      const qtypes = options.length > 0 ? options : ['AXFR'];
+      const qtypes = options.length > 0 ? options : ['ANY'];
       const response = await beam.resolveZone(space, opts.latest);
       response.qname = qname;
       response.qtypes = qtypes.map(t => t.toUpperCase());
@@ -425,42 +424,23 @@ async function createFabric(opts: any): Promise<Fabric> {
 
 function printDigStyleResponse(res: any, latest: boolean = false): void {
   const answers = res.zone.authorities;
-  const axfr = res.qtypes.filter((q: string) => q === 'AXFR').length > 0;
-  const relevantAnswers = axfr ? answers : answers.filter((a: any) => a.name === res.qname &&
-        (!axfr ? res.qtypes.includes(a.type) : true)
+  const anyReq = res.qtypes.filter((q: string) => q === 'ANY').length > 0;
+  const relevantAnswers = anyReq ? answers : answers.filter((a: any) => a.name === res.qname &&
+        (!anyReq ? res.qtypes.includes(a.type) : true)
   );
 
-  const authority = !axfr && relevantAnswers.length === 0 ? [answers.find((a: any) => a.type === 'SOA')] : [];
-  const additional: any[] = [];
-  const witnessOwner = 'self.' + res.space;
+  const authority = !anyReq && relevantAnswers.length === 0 ? [answers.find((a: any) => a.type === 'SOA')] : [];
 
-  if (axfr) {
-    additional.push({
-      name: witnessOwner,
-      ttl: answers.find((a: any) => a.type === 'SOA').data.minimum,
-      class: 'CLASS2',
-      type: 'TXT',
-      data: ['signature=' + res.signature.toString('hex'), 'proof=' + res.proof.toString('base64')],
-    });
-
-    const index = answers.findIndex((a: any) => a.type === 'SOA');
-    if (index !== -1) {
-      const soa = answers[index];
-      answers.splice(index, 1);
-      relevantAnswers.unshift(soa);
-      relevantAnswers.push(soa);
-    }
-  }
 
   console.log(`; ${beamTitle} ${res.qname} ${res.qtypes.join(' ')}`);
   console.log(';; Got answer:');
   console.log(';; ->>HEADER<<- opcode: QUERY, status: NOERROR');
-  console.log(`;; flags: qr rd ra ad; QUERY: ${res.qtypes.length}, ANSWER: ${relevantAnswers.length}, AUTHORITY: ${authority.length}, ADDITIONAL: ${additional.length}`);
+  console.log(`;; flags: qr rd ra ad; QUERY: ${res.qtypes.length}, ANSWER: ${relevantAnswers.length}, AUTHORITY: ${authority.length}, ADDITIONAL: 0`);
   console.log(';; QUESTION SECTION:');
   console.log(`;${res.qname}.\t\tCLASS2\t${res.qtypes.join(' ')}\t`);
   console.log('');
 
-  const longestName = Math.max(...answers.map((a: any) => a.name.length), witnessOwner.length);
+  const longestName = Math.max(...answers.map((a: any) => a.name.length));
   const printRecord = (a: any) => {
     if (a.class === 'CS') a.class = 'CLASS2';
     const owner = a.name + '.' + ' '.repeat(longestName - a.name.length);
@@ -500,12 +480,6 @@ function printDigStyleResponse(res: any, latest: boolean = false): void {
   if (authority.length > 0) {
     console.log(';; AUTHORITY SECTION:');
     authority.forEach((a: any) => printRecord(a));
-    console.log('');
-  }
-
-  if (additional.length > 0) {
-    console.log(';; ADDITIONAL SECTION:');
-    additional.forEach((a: any) => printRecord(a));
     console.log('');
   }
 

@@ -6,6 +6,7 @@ import b4a from 'b4a';
 import * as m from './messages';
 import {DHT} from 'dht-rpc';
 import {Receipt, VeritasSync} from './veritas';
+import {spaceHash} from './utils';
 
 const defaultMaxSize = 32768;
 const defaultMaxAge = 48 * 60 * 60 * 1000; // 48 hours
@@ -73,7 +74,8 @@ export class Fabric extends HyperDHT {
     return super.bootstrapper(port, host, opts)
   }
 
-  async zoneGet(target: Buffer, opts: any = {}) {
+  async zoneGet(space: string, opts: any = {}) {
+    const target = spaceHash(space);
     let refresh = opts.refresh || null;
     let signed: Buffer | Uint8Array | null = null;
     let result: any = null;
