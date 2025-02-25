@@ -67,6 +67,7 @@ class Beam {
       }
       data = data.slice(prefix.length);
 
+      console.log('; NOISE ADDRESS:', data);
       const pubkey = Buffer.from(data, 'hex');
       const encryptedSocket = this.fabric.connect(pubkey);
 
@@ -124,7 +125,7 @@ class Beam {
           }
         }
 
-        console.log(data.toString());
+        console.log(data.toString().trim());
         encryptedSocket.end();
       });
 

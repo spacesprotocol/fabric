@@ -45,8 +45,8 @@ async function main(opts: FabricOptions): Promise<void> {
   });
 
   await node.ready();
-  console.log(`Listening at ${joinHostPort(node.address())}`);
 
+  console.log('Node ready');
   process.once('SIGINT', function () {
     node.destroy();
   });
