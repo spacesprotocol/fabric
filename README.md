@@ -5,120 +5,84 @@
 |-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 
-Fabric is a trustless, distributed DNS resolver built on top of [hyperdht](https://github.com/holepunchto/hyperdht), extending its capabilities to allow publishing signed zone files using [spaces](https://spacesprotocol.org) as keys authenticated by Bitcoin. [Spaces](https://spacesprotocol.org) are sovereign Bitcoin identities and serve as a trust anchor, while Fabric DHT enables publishing records off-chain without adding any unnecessary on-chain bloat.
+Fabric is a trustless, distributed DNS resolver built on top of [hyperdht](https://github.com/holepunchto/hyperdht). It lets you publish signed DNS zone files for [spaces](https://spacesprotocol.org)—sovereign Bitcoin identities—off-chain, without adding on-chain bloat.
 
-**Note:** Fabric currently defaults to Bitcoin testnet4 since spaces are not yet on Bitcoin mainnet.
-
-## Prerequisites
-To use `fabric` and `beam`, you need to:
-
-- Run Bitcoin Core on testnet4
-- Install and sync spaces 
-
-You may use [this guide](https://docs.spacesprotocol.org/getting-started/installation) to set these up.
 
 ## Installation
 
-After [setting up spaces](https://docs.spacesprotocol.org/getting-started/installation), install Fabric:
 
 ```shell
 npm install -g @spacesprotocol/fabric
 ```
 
 
-## How to query spaces?
-
-Use `beam` it's like a distributed `dig`!
-
-```
-beam @onion TXT
-```
-
-Space @now also has TXT records published.
-
-**Note**: `beam` will automatically connect to a locally run spaces node using its default port for `testnet4` to verify answers from the DHT.
+## Querying Spaces with beam
 
 
-## How to publish records for a Space?
-
-1. Create a zone file (e.g., example.zone) with an SOA record and the records you want to publish:
-
+The `beam` tool is your distributed `dig` and publisher.
 
 ```
-@ORIGIN @example.
-
-; YOU MUST INCREMENT ZONE SERIAL WITH EACH UPDATE
-@    3600 CLASS2  SOA  . . ( 1 3600 600 604800 3600 )
-@    3600 CLASS2  TXT "Hello spaces!"
+beam @buffrr TXT
 ```
 
-2. Find the space's private key using `space-cli`
+By default, `beam` loads trust anchors from `http://127.0.0.1:7225/root-anchors.json` to verify responses (assuming a [spaces](https://github.com/spacesprotocol/spaces) client is running & connected to Bitcoin core). You can override this with:
 
-```shell
-space-cli --chain testnet4 exportwallet | grep '"spaces_descriptor"' | sed -E 's/.*(tprv[^\/]*).*/\1/'
-```
-
-it should look something like this:
-
-```
-tprv8ZgxMBicQKsPeUUxV746bQ9JmsytoyEeioAd9b962bQxcq7PfK8vRbFkSR7JD7ySoBoyswHX5vQvnhS95dHKUxW2maG2Tt7bJcCHsY66gNF
-```
+- A local anchors file: `--local-anchors /path/to/root-anchors.json`
+- A remote anchors URL: `--remote-anchors https://example.com/root-anchors.json`
+  (or by setting `FABRIC_REMOTE_ANCHORS` environment variable)
 
 
-3. Use `beam` to sign your zone file `example.zone`:
+## Publishing Records for a Space
 
+1. **Create a DNS zone file** (e.g., `example.zone`):
 
-```shell
-beam sign example.zone --private-key <private-key>
-```
+       @example. 3600 CLASS2 SOA . . ( 1 3600 600 604800 3600 )
+       @example. 3600 CLASS2 A   127.0.0.1
+       @example. 3600 CLASS2 TXT "hello world"
 
-Distribute the signed zone file (`example.zone.signed`) to the network:
+2. **Sign the zone file** with `space-cli`:
 
-You can either:
-- Place it in the `--watch` directory of a running Fabric node
-- OR Share it with other Fabric node operators to have them keep it alive
+       space-cli signzone example.zone
 
+   This produces `example.packet.json`.
 
-## Running a Fabric node
+3. **Publish the packet** with beam:
 
-Run a node if you want to publish your own zones and also contribute to the network. Specify a reachable ip/port:
+       beam publish example.packet.json
 
-**Note**: Fabric will automatically connect to a locally run spaces node using its default port for testnet4.
+The network retains records for up to 48 hours. To refresh, run:
 
-```
-fabric --host <ip-address> --port <public-port>
-```
+       space-cli refreshpacket example.packet.json
+       beam publish example.packet.json
 
-Specify a directory to watch for publishing space zones:
+You can also distribute the signed packet (`example.packet.json`) to a Fabric service operator for continuous publication.
 
-```shell
-fabirc --host <ip-address> --port <public-port> --watch /path/to/signed/zone/files/directory
-```
+## Running a Fabric Node
 
-After about 30 minutes of uptime, your node will become persistent and contribute to the network's storage.
+To contribute to the network, run a Fabric node by specifying a reachable IP and port:
 
+    fabric --host <ip-address> --port <public-port>
+
+After about 30 minutes of uptime, your node becomes persistent.
 
 ## Contributing Bootstrap Nodes
 
-**Note:** If you do not intened to submit a pull request you should ignore these instructions.
+We welcome more bootstrap nodes. To contribute:
 
-We could use more bootstrap nodes:
+1. Run a node with a reachable IP/port using the `--bootstrap` flag:
 
-1. Run a node with a reachable IP/Port specifying `--bootstrap` option
+       fabric --host <ip-address> --port <port> --bootstrap
 
-```shell
-fabric --host <ip-address> --port <port> --bootstrap
-```
-
-2. Create a pull request updating `constants.js` to include your bootstrap node.
-
+2. Submit a pull request updating `constants.js` with your node’s details.
 
 ## Encrypted Noise Connections
 
-Basic support for encrypted connections over named spaces is available. Use `beam serve` and `beam connect` and follow the CLI instructions.
+Basic support for encrypted connections over named spaces is available. Use `beam serve` and `beam connect`—follow the CLI instructions.
 
 ## Contributing
-We welcome contributions to Fabric! Please feel free to submit issues, feature requests, or pull requests to help improve the project.
+
+Contributions are welcome! Please submit issues, feature requests, or pull requests to help improve Fabric.
 
 ## License
+
 This project is licensed under the Apache 2.0 License. See the LICENSE file for details.

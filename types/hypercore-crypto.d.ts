@@ -50,3 +50,4 @@ declare module 'hypercore-crypto' {
         hash: Buffer;
     }
 }
+
