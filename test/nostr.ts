@@ -42,9 +42,8 @@ test('nostr put - get', async function (t) {
 
     t.is(put.signature.length, 64)
 
-    const pubkey = b4a.from(evt.pubkey, 'hex');
     const sig = b4a.from(evt.sig, 'hex');
-    const res = await nodes[1].nostrGet(pubkey, evt.kind);
+    const res = await nodes[1].nostrGet(evt.pubkey, evt.kind);
 
     t.is(res.createdAt, evt.created_at)
 
@@ -60,9 +59,8 @@ test('nostr put - get', async function (t) {
 
     t.is(put.signature.length, 64)
 
-    const pubkey = b4a.from(evt.pubkey, 'hex');
     const sig = b4a.from(evt.sig, 'hex');
-    const res = await nodes[1].nostrGet(pubkey, evt.kind);
+    const res = await nodes[1].nostrGet(evt.pubkey, evt.kind);
 
     t.is(res.createdAt, evt.created_at)
 

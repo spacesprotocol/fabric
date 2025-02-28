@@ -7,10 +7,27 @@ import * as m from './messages';
 import {DHT} from 'dht-rpc';
 import {Receipt, VeritasSync} from './veritas';
 import {nostrTarget, NostrEvent, serializeEvent, spaceHash, nostrDTag} from './utils';
+import {Buffer} from 'buffer';
 
 
 const defaultCacheMaxSize = 32768;
 const defaultMaxAge = 48 * 60 * 60 * 1000; // 48 hours
+
+export interface SignedPacket {
+  space: string;
+  serial: number;
+  signature: Buffer;
+  value: Buffer;
+  proof: Buffer;
+}
+
+export interface FabricOptions extends HyperDHTOptions {
+  maxSize?: number;
+  maxAge?: number;
+  zones?: MaxCacheOptions;
+  nostr?: MaxCacheOptions;
+  veritas?: VeritasSync;
+}
 
 export const ERROR = {
   // hyperdht errors
@@ -55,13 +72,6 @@ export const ERROR_STRING: Record<number, string> = {
   [ERROR.EVENT_TOO_OLD]: 'event too old',
 };
 
-export interface FabricOptions extends HyperDHTOptions {
-    maxSize?: number;
-    maxAge?: number;
-    zones?: MaxCacheOptions;
-    nostr?: MaxCacheOptions;
-    veritas?: VeritasSync;
-}
 
 export class Fabric extends HyperDHT {
   private _zones: Cache | null = null;
@@ -131,10 +141,12 @@ export class Fabric extends HyperDHT {
     return {target, closestNodes: query.closestNodes, signature};
   }
 
-  async zonePublish(space: string, value: Buffer, signature: Buffer, proof: Buffer, opts: any = {}) {
-    const target = spaceHash(space);
-    const seq = opts.seq || 0;
-    const signed = c.encode(m.zonePutRequest, {seq, value, signature, proof});
+  async zonePublish(packet: SignedPacket, opts: any = {}) {
+    const target = spaceHash(packet.space);
+    const signable = c.encode(m.zoneSignable, {serial: packet.serial, value: packet.value});
+    // Throws on failure
+    this.veritas.verifyZone(target, signable, packet.signature, packet.proof);
+    const signed = c.encode(m.zonePutRequest, {serial: packet.serial, value: packet.value, signature: packet.signature, proof: packet.proof});
     opts = {
       ...opts,
       map: mapZone,
@@ -159,7 +171,7 @@ export class Fabric extends HyperDHT {
     const query = this.query({target, command: COMMANDS.ZONE_GET, value: c.encode(c.uint, 0)}, opts);
     await query.finished();
 
-    return {target, closestNodes: query.closestNodes, seq, signature};
+    return {target, closestNodes: query.closestNodes, serial: packet.serial, signature: packet.signature};
   }
 
   async zoneGet(space: string, opts: any = {}) {
@@ -169,24 +181,24 @@ export class Fabric extends HyperDHT {
     let result: any = null;
     opts = {...opts, map: mapZone, commit: refresh ? commit : null};
 
-    const userSeq = opts.seq || 0;
-    const query = this.query({target, command: COMMANDS.ZONE_GET, value: c.encode(c.uint, userSeq)}, opts);
+    const userSerial = opts.serial || 0;
+    const query = this.query({target, command: COMMANDS.ZONE_GET, value: c.encode(c.uint, userSerial)}, opts);
     const latest = opts.latest !== false;
     const closestNodes: Buffer[] = [];
 
     for await (const node of query) {
       closestNodes.push(node.from);
-      if (result && node.seq <= result.seq) continue;
-      if (node.seq < userSeq) continue;
-      const msg = c.encode(m.zoneSignable, {seq: node.seq, value: node.value});
+      if (result && node.serial <= result.serial) continue;
+      if (node.serial < userSerial) continue;
+      const msg = c.encode(m.zoneSignable, {serial: node.serial, value: node.value});
       try {
         const receipt = this.veritas.verifyZone(target, msg, node.signature, node.proof);
         if (!latest) {
           result = node;
-          result.proofSeq = receipt.proofSeq;
+          result.trustpoint = receipt.trustpoint;
           break;
         }
-        if (!result || (receipt.proofSeq > result.proofSeq && node.seq > result.seq)) result = node;
+        if (!result || (receipt.trustpoint > result.trustpoint && node.serial > result.serial)) result = node;
       } catch (e) {
         console.warn(`Could not verify from peer ${node.from.host}:${node.from.port}: ${e}`);
       }
@@ -204,7 +216,7 @@ export class Fabric extends HyperDHT {
       if (!signed && result && refresh) {
         if (refresh(result)) {
           signed = c.encode(m.zonePutRequest, {
-            seq: result.seq,
+            serial: result.serial,
             value: result.value,
             signature: result.signature,
             proof: result.proof
@@ -225,9 +237,9 @@ export class Fabric extends HyperDHT {
     }
   }
 
-  async nostrGet(pubkey: Uint8Array, kind: number, d : string = '', opts: any = {}) {
-    if (pubkey.length !== 32) throw new Error(`invalid pubkey length ${pubkey.length}`)
-    const targetString = nostrTarget(b4a.toString(pubkey, 'hex'), kind, d);
+  async nostrGet(npub: string, kind: number, d : string = '', opts: any = {}) {
+    if (npub.length !== 64 || !npub.match(/^[a-f0-9]{64}$/)) throw new Error(`expected a hex encoded npub`)
+    const targetString = nostrTarget(npub, kind, d);
     const target = this.veritas.sha256(b4a.from(targetString));
     let refresh = opts.refresh || null;
     let signed: Buffer | Uint8Array | null = null;
@@ -238,10 +250,11 @@ export class Fabric extends HyperDHT {
     const query = this.query({target, command: COMMANDS.NOSTR_GET, value: c.encode(c.uint, userCreatedAt)}, opts);
     const latest = opts.latest !== false;
     const closestNodes: Buffer[] = [];
+    const pubkey = b4a.from(npub, 'hex');
 
     for await (const node of query) {
       closestNodes.push(node.from);
-      if (result && node.seq <= result.seq) continue;
+      if (result && node.createdAt <= result.createdAt) continue;
       if (node.createdAt < userCreatedAt) continue;
       try {
         this.veritas.verifyNostr(target, node.value, pubkey, node.signature);
@@ -354,10 +367,10 @@ export class Fabric extends HyperDHT {
     const p = decode(m.zonePutRequest, req.value);
     if (!p) return;
 
-    const {seq, value, signature, proof} = p;
+    const {serial, value, signature, proof} = p;
     if (!value) return;
 
-    const msg = c.encode(m.zoneSignable, {seq, value});
+    const msg = c.encode(m.zoneSignable, {serial, value});
     let receipt: Receipt | null = null;
     let publicKey : Uint8Array | undefined;
     try {
@@ -378,15 +391,15 @@ export class Fabric extends HyperDHT {
     if (local) {
       const existing = c.decode(m.zoneRecord, local);
       const identical = existing.value && b4a.compare(value, existing.value) === 0;
-      const existingProofSeq = this.veritas.getProofSeq(existing.root);
+      const localTrustpoint = this.veritas.getTrustPoint(existing.root);
 
       // Prevent reuse of a sequence when the value has changed.
-      if (existing.value && !identical && existing.seq === seq) {
+      if (existing.value && !identical && existing.serial === serial) {
         req.error(ERROR.SEQ_REUSED);
         return;
       }
       // New updates must have a higher sequence.
-      if (seq < existing.seq) {
+      if (serial < existing.serial) {
         req.error(ERROR.SEQ_TOO_LOW);
         return;
       }
@@ -394,17 +407,17 @@ export class Fabric extends HyperDHT {
       const pubkey_changed = b4a.compare(publicKey , existing.publicKey) !== 0;
       if (pubkey_changed) {
         // We only require that the new proof is higher than the stored proof.
-        if (existingProofSeq && receipt.proofSeq <= existingProofSeq) {
+        if (localTrustpoint && receipt.trustpoint <= localTrustpoint) {
           req.error(ERROR.STALE_PROOF);
           return;
         }
       } else {
         // Pubkeys still the same, we prefer older but non-stale proofs
-        if (existingProofSeq && receipt.proofSeq !== existingProofSeq) {
+        if (localTrustpoint && receipt.trustpoint !== localTrustpoint) {
           // If the submitted proof is stale and older than the stored proof, reject it.
           // Note: this still allows older proofs to take priority over recent ones as long
           // as they're not stale.
-          if (this.veritas.isStale(receipt.proofSeq) && receipt.proofSeq < existingProofSeq) {
+          if (this.veritas.isStale(receipt.trustpoint) && receipt.trustpoint < localTrustpoint) {
             req.error(ERROR.STALE_PROOF);
             return;
           }
@@ -414,7 +427,7 @@ export class Fabric extends HyperDHT {
           // This ensures:
           // 1. Clients with older trust anchors can continue to validate.
           // 2. Someone can't publish very recent proofs for spaces they don't own to block older clients.
-          if (!this.veritas.isStale(existingProofSeq) && receipt.proofSeq > existingProofSeq) {
+          if (!this.veritas.isStale(localTrustpoint) && receipt.trustpoint > localTrustpoint) {
             req.error(ERROR.NON_STALE_ANCESTOR_EXISTS);
             return;
           }
@@ -424,7 +437,7 @@ export class Fabric extends HyperDHT {
 
     console.log(`zonePut: storing ${req.target.toString('hex')}`);
     this._zones?.set(k, c.encode(m.zoneRecord, {
-      seq,
+      serial,
       value,
       signature,
       root: receipt.root,
@@ -438,9 +451,9 @@ export class Fabric extends HyperDHT {
   onzoneget(req: any) {
     if (!req.target || !req.value) return;
 
-    let seq = 0;
+    let serial = 0;
     try {
-      seq = c.decode(c.uint, req.value);
+      serial = c.decode(c.uint, req.value);
     } catch {
       return;
     }
@@ -453,8 +466,8 @@ export class Fabric extends HyperDHT {
       return;
     }
 
-    const localSeq = c.decode(c.uint, value);
-    req.reply(localSeq < seq ? null : value);
+    const localSerial = c.decode(c.uint, value);
+    req.reply(localSerial < serial ? null : value);
   }
 
   onrequest(req: any): boolean {
@@ -497,13 +510,13 @@ function mapZone(node: any) {
   if (!node.value) return null;
 
   try {
-    const {seq, value, signature, proof} = c.decode(m.zoneRecord, node.value);
+    const {serial, value, signature, proof} = c.decode(m.zoneRecord, node.value);
 
     return {
       token: node.token,
       from: node.from,
       to: node.to,
-      seq,
+      serial,
       value,
       signature,
       proof

@@ -1,8 +1,8 @@
 import test from 'brittle'
 import {swarm} from './helpers'
-import {spaceHash} from '../utils'
 import {Buffer} from 'buffer'
 import b4a from 'b4a'
+import {SignedPacket} from '../index';
 
 const test1 = {
   serial: 1739983316,
@@ -29,15 +29,7 @@ const test1 = {
   }
 }
 
-interface Packet {
-    serial: number,
-    space: string,
-    packet: Buffer,
-    signature: Buffer,
-    proof: Buffer,
-}
-
-function getPacket(proofVersion: string): Packet {
+function getPacket(proofVersion: string): SignedPacket {
   // @ts-ignore
   const proof = test1.proofs[proofVersion].proof
   if (!proof) throw new Error(`no '${proofVersion}' found in test data`);
@@ -47,7 +39,7 @@ function getPacket(proofVersion: string): Packet {
     space: test1.space,
     serial: test1.serial,
     signature: Buffer.from(test1.signature, 'hex'),
-    packet: Buffer.from(test1.packet, 'base64')
+    value: Buffer.from(test1.packet, 'base64')
   }
 }
 
@@ -58,26 +50,26 @@ test('zone put - get', async function (t) {
   let pkt = getPacket('stale5th')
   pkt.signature = Buffer.alloc(64);
   await t.exception(
-    nodes[0].zonePublish(pkt.space, pkt.packet, pkt.signature, pkt.proof, {seq: pkt.serial})
+    nodes[0].zonePublish(pkt)
   );
 
   // should validate space name
   pkt = getPacket('stale5th')
   pkt.space = '@wrongspace';
   await t.exception(
-    nodes[0].zonePublish(pkt.space, pkt.packet, pkt.signature, pkt.proof, {seq: pkt.serial})
+    nodes[0].zonePublish(pkt)
   );
   
   // should accept stale proof if no alternative exists
   const stale = getPacket('stale5th')
-  const put = await nodes[0].zonePublish(stale.space, stale.packet, stale.signature, stale.proof, {seq: stale.serial})
+  const put = await nodes[0].zonePublish(stale)
 
   t.is(put.signature.length, 64)
 
   const res = await nodes[1].zoneGet(stale.space)
 
-  t.is(res.seq, stale.serial)
-  t.is(b4a.compare(res.value, stale.packet), 0)
+  t.is(res.serial, stale.serial)
+  t.is(b4a.compare(res.value, stale.value), 0)
   t.is(b4a.compare(res.proof, stale.proof), 0)
   t.is(b4a.compare(res.signature, put.signature), 0)
   t.is(typeof res.from, 'object')
@@ -88,11 +80,11 @@ test('zone put - get', async function (t) {
 
   // if both proofs are stale, it should accept the more recent one
   const stale8th = getPacket('stale8th')
-  await nodes[0].zonePublish(stale8th.space, stale8th.packet, stale8th.signature, stale8th.proof, {seq: stale8th.serial})
+  await nodes[0].zonePublish(stale8th)
 
   // a more recent proof can override a stale proof
   const recent = getPacket('recent')
-  const put2 = await nodes[0].zonePublish(recent.space, recent.packet, recent.signature, recent.proof, {seq: recent.serial})
+  const put2 = await nodes[0].zonePublish(recent)
 
   t.is(put2.signature.length, 64)
 
@@ -101,10 +93,10 @@ test('zone put - get', async function (t) {
 
   // an optimal proof can override a more recent proof
   const optimal = getPacket('optimal9th')
-  await nodes[0].zonePublish(optimal.space, optimal.packet, optimal.signature, optimal.proof, {seq: optimal.serial})
+  await nodes[0].zonePublish(optimal)
   const res3 = await nodes[1].zoneGet(optimal.space)
   t.is(b4a.compare(res3.proof, optimal.proof), 0)
 
   // a more recent proof cannot override an optimal proof
-  await t.exception(nodes[0].zonePublish(recent.space, recent.packet, recent.signature, recent.proof, {seq: recent.serial}))
+  await t.exception(nodes[0].zonePublish(recent))
 })

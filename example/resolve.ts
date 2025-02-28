@@ -7,7 +7,9 @@ async function main() {
     // Load trust anchors
     veritas: await VeritasSync.create({
       remoteUrls: ['http://127.0.0.1:7225/root-anchors.json'],
-      // Alternatively specify static ones
+      // OR use a public service e.g.
+      // remoteUrls: ['https://bitpki.com/root-anchors.json']
+      // Alternatively specify static ones (must be updated periodically to allow new spaces)
       // staticAnchors: [
       //   {
       //     root: 'c9395f0256c5f665f30f191af459836f92073901f609d1dc6db0bc8787d82dbf',

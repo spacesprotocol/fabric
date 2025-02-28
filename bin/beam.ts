@@ -3,14 +3,12 @@
 import {program} from 'commander';
 import {defineMainOptions, nodeOpts} from './common';
 import fs from 'fs';
-import {Fabric} from '../index';
+import {Fabric, SignedPacket} from '../index';
 import dns from 'dns-packet';
-import {deserializeEvent, NostrEvent, spaceHash, validateEvent} from '../utils';
-import {resolve, basename} from 'node:path';
+import {deserializeEvent, NostrEvent, validateEvent} from '../utils';
+import {basename, resolve} from 'node:path';
 import {KeyPair} from 'hypercore-crypto';
 import {Buffer} from 'buffer';
-import c from 'compact-encoding';
-import * as m from '../messages';
 import b4a from 'b4a';
 
 const beamTitle = '<<>> Beam 0.1 <<>>';
@@ -29,14 +27,6 @@ interface ResolveZoneResponse {
     elapsed: number;
 }
 
-interface SignedPacket {
-    space: string;
-    target: Buffer;
-    seq: number;
-    signature: Buffer;
-    value: Buffer;
-    proof: Buffer;
-}
 
 class Beam {
   fabric: Fabric;
@@ -335,8 +325,7 @@ program
         throw new Error(`must be a valid numeric event, got '${opts.kind}'`);
       }
 
-      const pubkey = b4a.from(npub, 'hex');
-      const result = await beam.fabric.nostrGet(pubkey, kind, opts.dTag, {
+      const result = await beam.fabric.nostrGet(npub, kind, opts.dTag, {
         latest: opts.latest || false
       })
 
@@ -398,13 +387,8 @@ async function publishNostr(beam : Beam, evt: NostrEvent) {
 
 async function publishDns(beam : Beam, data: any) {
   const payload = readPacket(data);
-  const signable = c.encode(m.zoneSignable, {seq: payload.seq, value: payload.value});
-  beam.fabric.veritas.verifyZone(payload.target, signable, payload.signature, payload.proof);
-
-  await beam.fabric.zonePublish(payload.space, payload.value, payload.signature, payload.proof, {
-    seq: payload.seq
-  })
-  console.log(`✓ Published ${payload.space} (serial: ${payload.seq})`);
+  await beam.fabric.zonePublish(payload)
+  console.log(`✓ Published ${payload.space} (serial: ${payload.serial})`);
 }
 
 program
@@ -598,17 +582,13 @@ function isDnsPacket(data: any) : boolean {
   return data instanceof Object && data.space && data.serial && data.packet && data.signature && data.proof
 }
 
-
-
 function readPacket(data: any): SignedPacket {
   if (!isDnsPacket(data)) throw new Error('must be a valid signed dns packet')
-  const packet: SignedPacket = {
+  return {
     space: data.space,
-    target: spaceHash(data.space),
-    seq: data.serial,
+    serial: data.serial,
     signature: Buffer.from(data.signature, 'hex'),
     value: Buffer.from(data.packet, 'base64'),
     proof: Buffer.from(data.proof, 'base64')
   };
-  return packet;
 }

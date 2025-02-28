@@ -12,7 +12,7 @@ interface Anchor {
 }
 
 export interface Receipt {
-    proofSeq: number,
+    trustpoint: number,
     root: Uint8Array,
     spaceout: SpaceOut,
 }
@@ -26,7 +26,7 @@ interface SyncOptions {
 
 export class VeritasSync {
   private veritas: Veritas;
-  private versionIndex: Map<string, number>;
+  private trustPoints: Map<string, number>;
   private fileWatcher: fs.FSWatcher | null = null;
   private intervalId: NodeJS.Timeout | null = null;
   private destroyed = false; // Flag to stop retry loop
@@ -52,7 +52,7 @@ export class VeritasSync {
     }
 
     this.veritas = new Veritas();
-    this.versionIndex = new Map();
+    this.trustPoints = new Map();
 
     if (options.staticAnchors) {
       this.updateAnchors(options.staticAnchors);
@@ -79,8 +79,8 @@ export class VeritasSync {
     }
   }
 
-  public getProofSeq(root: Uint8Array): number | undefined {
-    return this.versionIndex.get(b4a.toString(root, 'hex'))
+  public getTrustPoint(root: Uint8Array): number | undefined {
+    return this.trustPoints.get(b4a.toString(root, 'hex'))
   }
 
   public verifySchnorr(pubkey: Uint8Array, digest: Uint8Array, signature: Uint8Array): void {
@@ -156,13 +156,13 @@ export class VeritasSync {
     this.veritas.verifyMessage(spaceout, msg, signature);
     const root = subtree.getRoot();
     const rootKey = b4a.toString(subtree.getRoot(), 'hex');
-    const proofSeq = this.versionIndex.get(rootKey);
-    if (!proofSeq) {
+    const trustpoint = this.trustPoints.get(rootKey);
+    if (!trustpoint) {
       throw new Error('Could not find proof version');
     }
 
     return {
-      proofSeq,
+      trustpoint,
       root,
       spaceout
     };
@@ -289,7 +289,7 @@ export class VeritasSync {
 
   private updateAnchors(anchors: Anchor[]) {
     this.veritas = new Veritas();
-    this.versionIndex = new Map();
+    this.trustPoints = new Map();
 
     if (anchors.length === 0) {
       return;
@@ -304,7 +304,7 @@ export class VeritasSync {
     for (const anchor of anchors) {
       const root = Buffer.from(anchor.root, 'hex');
       this.veritas.addAnchor(root);
-      this.versionIndex.set(anchor.root, anchor.block.height);
+      this.trustPoints.set(anchor.root, anchor.block.height);
     }
 
     console.log(`Anchors refreshed, latest block ${anchors[0].block.height}`);
