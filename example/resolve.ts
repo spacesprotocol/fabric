@@ -23,10 +23,15 @@ async function main() {
     })
   });
 
+  // Fetching spaces/forward lookups
   const {value : dnsPacket} = await fabric.zoneGet('@buffrr');
   const records = dns.decode(dnsPacket);
   console.log('records: ', records);
   await fabric.destroy();
+
+  // Nostr (reverse lookups by npub)
+  // Nostr events: await fabric.nostrGet('<npub>', <kind>, '<optional-d-tag>')
+  // Publish nostr events: await fabric.nostrPublish(jsonEvent);
 }
 
 main();
