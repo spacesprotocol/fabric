@@ -12,13 +12,26 @@ export interface ZonePutRequest {
   proof: Uint8Array |  null;
 }
 
-export interface ZoneGetResponse {
+export interface ZoneRecord {
   seq: number;
   value: Uint8Array | null;
   signature: Uint8Array;
   root: Uint8Array;
   publicKey: Uint8Array;
   proof: Uint8Array | null;
+}
+
+export interface NostrPutRequest {
+  value: Uint8Array | null;
+  publicKey: Uint8Array;
+  signature: Uint8Array;
+}
+
+export interface NostrRecord {
+  createdAt: number;
+  value: Uint8Array | null;
+  publicKey: Uint8Array;
+  signature: Uint8Array;
 }
 
 // ZoneSignable encoding/decoding structure
@@ -63,9 +76,9 @@ export const zonePutRequest = {
   },
 };
 
-// ZoneGetResponse encoding/decoding structure
-export const zoneGetResponse = {
-  preencode(state: any, m: ZoneGetResponse): void {
+// ZoneRecord encoding/decoding structure
+export const zoneRecord = {
+  preencode(state: any, m: ZoneRecord): void {
     c.uint.preencode(state, m.seq);
     c.buffer.preencode(state, m.value);
     c.fixed64.preencode(state, m.signature);
@@ -73,7 +86,7 @@ export const zoneGetResponse = {
     c.fixed32.preencode(state, m.publicKey);
     c.buffer.preencode(state, m.proof);
   },
-  encode(state: any, m: ZoneGetResponse): void {
+  encode(state: any, m: ZoneRecord): void {
     c.uint.encode(state, m.seq);
     c.buffer.encode(state, m.value);
     c.fixed64.encode(state, m.signature);
@@ -81,7 +94,7 @@ export const zoneGetResponse = {
     c.fixed32.encode(state, m.publicKey);
     c.buffer.encode(state, m.proof);
   },
-  decode(state: any): ZoneGetResponse {
+  decode(state: any): ZoneRecord {
     return {
       seq: c.uint.decode(state),
       value: c.buffer.decode(state),
@@ -89,6 +102,51 @@ export const zoneGetResponse = {
       root: c.fixed32.decode(state),
       publicKey: c.fixed32.decode(state),
       proof: c.buffer.decode(state),
+    };
+  },
+};
+
+// NostrPutRequest encoding/decoding structure
+export const nostrPutRequest = {
+  preencode(state: any, m: NostrPutRequest): void {
+    c.buffer.preencode(state, m.value);
+    c.fixed32.preencode(state, m.publicKey);
+    c.fixed64.preencode(state, m.signature);
+  },
+  encode(state: any, m: NostrPutRequest): void {
+    c.buffer.encode(state, m.value);
+    c.fixed32.encode(state, m.publicKey);
+    c.fixed64.encode(state, m.signature);
+  },
+  decode(state: any): NostrPutRequest {
+    return {
+      value: c.buffer.decode(state),
+      publicKey: c.fixed32.decode(state),
+      signature: c.fixed64.decode(state),
+    };
+  },
+};
+
+// NostrRecord encoding/decoding structure
+export const nostrRecord = {
+  preencode(state: any, m: NostrRecord): void {
+    c.uint.preencode(state, m.createdAt);
+    c.buffer.preencode(state, m.value);
+    c.fixed32.preencode(state, m.publicKey);
+    c.fixed64.preencode(state, m.signature);
+  },
+  encode(state: any, m: NostrRecord): void {
+    c.uint.encode(state, m.createdAt);
+    c.buffer.encode(state, m.value);
+    c.fixed32.encode(state, m.publicKey);
+    c.fixed64.encode(state, m.signature);
+  },
+  decode(state: any): NostrRecord {
+    return {
+      createdAt: c.uint.decode(state),
+      value: c.buffer.decode(state),
+      publicKey: c.fixed32.decode(state),
+      signature: c.fixed64.decode(state),
     };
   },
 };

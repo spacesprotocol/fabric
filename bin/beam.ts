@@ -5,12 +5,13 @@ import {defineMainOptions, nodeOpts} from './common';
 import fs from 'fs';
 import {Fabric} from '../index';
 import dns from 'dns-packet';
-import {spaceHash} from '../utils';
+import {deserializeEvent, NostrEvent, spaceHash, validateEvent} from '../utils';
 import {resolve, basename} from 'node:path';
 import {KeyPair} from 'hypercore-crypto';
 import {Buffer} from 'buffer';
 import c from 'compact-encoding';
 import * as m from '../messages';
+import b4a from 'b4a';
 
 const beamTitle = '<<>> Beam 0.1 <<>>';
 
@@ -310,26 +311,44 @@ program
     }
   });
 
+
 program
-  .command('publish <signed-packet>')
-  .description('Publish a signed DNS packet to the Fabric network')
-  .action(async (file: string, _: any, cmd: any) => {
+  .command('npub [options...]')
+  .requiredOption('--kind <kind>', 'The nostr event kind')
+  .option('--d-tag <dTag>', 'The nostr event d-tag for addresseable events', '')
+  .option('--latest', 'Find the latest version of a nostr event')
+  .description('Query nostr\'s events')
+  .action(async (options: string[], _ : any, cmd: any) => {
     const opts = cmd.optsWithGlobals();
     let beam: Beam;
+
     try {
-      const payload = readPacket(file);
       beam = await Beam.create(opts);
+      await beam.ready();
 
-      const signable = c.encode(m.zoneSignable, {seq: payload.seq, value: payload.value});
-      beam.fabric.veritas.verifyPut(payload.target, signable, payload.signature, payload.proof);
+      const npub = options.shift()!;
+      if (!npub.match(/^[a-f0-9]{64}$/)) {
+        throw new Error(`must be a valid npub in hex format, got '${npub}'`);
+      }
+      const kind = parseInt(opts.kind);
+      if (isNaN(kind)) {
+        throw new Error(`must be a valid numeric event, got '${opts.kind}'`);
+      }
 
-      await beam.fabric.zonePublish(payload.space, payload.value, payload.signature, payload.proof, {
-        seq: payload.seq
+      const pubkey = b4a.from(npub, 'hex');
+      const result = await beam.fabric.nostrGet(pubkey, kind, opts.dTag, {
+        latest: opts.latest || false
       })
-      console.log(`✓ Published ${payload.space} (serial: ${payload.seq})`);
 
+      if (result) {
+        const jsonString = b4a.toString(result.value, 'utf-8');
+        const event = deserializeEvent(jsonString);
+        console.log(event);
+      } else {
+        console.log('; No records found')
+      }
     } catch (e) {
-      console.error(`Error publishing packet: `, e instanceof Error ? e.message : e);
+      console.error((e as Error).message);
     } finally {
       try {
         // @ts-ignore
@@ -338,6 +357,55 @@ program
       }
     }
   });
+
+program
+  .command('publish <signed-packet>')
+  .description('Publish a signed DNS packets or Nostr events\n')
+  .option('--type <type>', 'Specify the payload type "dns" or "nostr"')
+  .action(async (file: string, _: any, cmd: any) => {
+    const opts = cmd.optsWithGlobals();
+    let beam: Beam;
+    try {
+      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+      beam = await Beam.create(opts);
+      const payloadType = opts.type || (isNostrEvent(data) ? 'nostr' : undefined) || (isDnsPacket(data) ? 'dns' : undefined)
+      switch (payloadType) {
+      case 'nostr':
+        await publishNostr(beam, data);
+        break;
+      case 'dns':
+        await publishDns(beam, data)
+        break;
+      default:
+        throw new Error('payload must be a dns packet or signed nostr event')
+      }
+    } catch (e) {
+      console.error(`Error publishing: `, e instanceof Error ? e.message : e);
+    } finally {
+      try {
+        // @ts-ignore
+        await beam.destroy();
+      } catch (_) {
+      }
+    }
+  });
+
+async function publishNostr(beam : Beam, evt: NostrEvent) {
+  if (!isNostrEvent(evt)) throw new Error('must be a signed nostr event')
+  await beam.fabric.nostrPublish(evt)
+  console.log(`✓ Published ${evt.pubkey} (kind: ${evt.kind})`);
+}
+
+async function publishDns(beam : Beam, data: any) {
+  const payload = readPacket(data);
+  const signable = c.encode(m.zoneSignable, {seq: payload.seq, value: payload.value});
+  beam.fabric.veritas.verifyZone(payload.target, signable, payload.signature, payload.proof);
+
+  await beam.fabric.zonePublish(payload.space, payload.value, payload.signature, payload.proof, {
+    seq: payload.seq
+  })
+  console.log(`✓ Published ${payload.space} (serial: ${payload.seq})`);
+}
 
 program
   .command('connect <space-uri>')
@@ -406,6 +474,13 @@ program
 const args = process.argv;
 
 for (let i = 0; i < args.length; i++) {
+  if (args[i].match(/^[a-f0-9]{64}$/) && i > 0 && args[i - 1].includes('beam')) {
+    const command = 'npub';
+    const argWithAt = args[i];
+    args.splice(i, 1);
+    args.splice(i, 0, command, argWithAt);
+    break;
+  }
   if (args[i].includes('@') && i > 0 && args[i - 1].includes('beam')) {
     const command = '@example';
     const argWithAt = args[i];
@@ -515,11 +590,18 @@ function now(): string {
   });
 }
 
-function readPacket(filePath: string): SignedPacket {
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  if (!data.space || !data.serial || !data.packet || !data.signature || !data.proof) {
-    throw new Error('invalid packet');
-  }
+function isNostrEvent(data: any) : boolean {
+  return data instanceof Object && validateEvent(data)
+}
+
+function isDnsPacket(data: any) : boolean {
+  return data instanceof Object && data.space && data.serial && data.packet && data.signature && data.proof
+}
+
+
+
+function readPacket(data: any): SignedPacket {
+  if (!isDnsPacket(data)) throw new Error('must be a valid signed dns packet')
   const packet: SignedPacket = {
     space: data.space,
     target: spaceHash(data.space),

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import {Veritas, SpaceOut} from '@spacesprotocol/veritas';
 import b4a from 'b4a';
+import {nostrDTag, nostrTarget} from './utils';
 
 interface Anchor {
     root: string;
@@ -82,7 +83,64 @@ export class VeritasSync {
     return this.versionIndex.get(b4a.toString(root, 'hex'))
   }
 
-  public verifyPut(
+  public verifySchnorr(pubkey: Uint8Array, digest: Uint8Array, signature: Uint8Array): void {
+    this.veritas.verifySchnorr(pubkey, digest, signature)
+  }
+
+  public sha256(data: Uint8Array): Uint8Array {
+    return this.veritas.sha256(data)
+  }
+
+  public verifyNostr(target: Uint8Array, value: Uint8Array, publicKey: Uint8Array, signature: Uint8Array): number {
+    const digest = this.veritas.sha256(value);
+
+    // Throws on failure
+    this.veritas.verifySchnorr(publicKey, digest, signature);
+
+    let evt;
+    try {
+      const jsonString = new TextDecoder().decode(value);
+      evt = JSON.parse(jsonString);
+    } catch (e) {
+      throw new Error('malformed event');
+    }
+    if (evt.length < 5) throw new Error('bad event: expected at least 5 items');
+
+    const [version, evtPubkey, evtCreatedAt, evtKind, tags] = evt;
+    const publicKeyHex = b4a.toString(publicKey, 'hex');
+    if (version !== 0 || publicKeyHex !== evtPubkey || typeof evtCreatedAt !== 'number' || typeof evtKind !== 'number') {
+      throw new Error('malformed event');
+    }
+
+    const isAddressable = this.isAddressableEvent(evtKind);
+    if (!isAddressable && !this.isReplaceableEvent(evtKind)) {
+      throw new Error('unsupported event');
+    }
+
+    // Extract 'd' tag for addressable events
+    let d = '';
+    if (isAddressable) {
+      const dTag = nostrDTag(tags);
+      if (!dTag || dTag == '') throw new Error('addressable event missing required "d" tag');
+      d = dTag[1];
+    }
+
+    const targetString = nostrTarget(publicKeyHex, evtKind, d);
+    const expectedTarget = this.veritas.sha256(b4a.from(targetString));
+    if (b4a.compare(target, expectedTarget) !== 0) {
+      throw new Error('unexpected target');
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const maxCreatedAt = now + 30 * 24 * 60 * 60; // 30 days in future
+    if (evtCreatedAt > maxCreatedAt) {
+      throw new Error('event too far in the future');
+    }
+
+    return evtCreatedAt;
+  }
+
+  public verifyZone(
     target: Uint8Array,
     msg: Uint8Array,
     signature: Uint8Array,
@@ -94,6 +152,7 @@ export class VeritasSync {
       throw new Error('No UTXO associated with target');
     }
 
+    // Throws on failure
     this.veritas.verifyMessage(spaceout, msg, signature);
     const root = subtree.getRoot();
     const rootKey = b4a.toString(subtree.getRoot(), 'hex');
@@ -107,6 +166,14 @@ export class VeritasSync {
       root,
       spaceout
     };
+  }
+
+  private isReplaceableEvent(evtKind: number): boolean {
+    return evtKind === 0 || evtKind === 3 || (evtKind >= 10000 && evtKind < 20000);
+  }
+
+  private isAddressableEvent(evtKind: number): boolean {
+    return evtKind >= 30000 && evtKind < 40000;
   }
 
   public destroy(): void {
