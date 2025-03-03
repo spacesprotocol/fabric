@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import {program} from 'commander';
-import {defineMainOptions, nodeOpts} from './common';
+import {defineMainOptions, joinHostPort, nodeOpts} from './common';
 import fs from 'fs';
 import {Fabric} from '../index';
 import dns from 'dns-packet';
@@ -127,8 +127,11 @@ class Beam {
         encryptedSocket.end();
       });
 
+      await new Promise(() => {
+      });
     } catch (e) {
       console.error('; ERROR connecting: ', (e as Error).message);
+      await this.destroy();
     }
   }
 
@@ -268,6 +271,22 @@ defineMainOptions();
 
 program.name('beam');
 
+function printResponse(res: any) {
+  if (!res || !res.event || !res.from || !res.closestNodes) {
+    console.log('No records found');
+    return;
+  }
+
+  const event : any = toEvent(res.event);
+  event.peers = [
+    joinHostPort(res.from) + '#' + b4a.from(res.from.id).toString('hex')
+  ];
+  for (const node of res.closestNodes) {
+    event.peers.push(joinHostPort(node) + '#' + b4a.from(node.id).toString('hex'))
+  }
+  console.log(event)
+}
+
 program
   .command('@example [options...]')
   .option('--latest', 'Find the latest version of a zone')
@@ -285,15 +304,17 @@ program
       const space = labels[labels.length - 1];
       if (!space.startsWith('@')) {
         console.error(`space names must start with @, got '${space}'`);
-        return;
+      } else if (options.length > 0 && !isNaN(parseInt(options[0]))) {
+        const res = await beam.fabric.eventGet(space, parseInt(options[0]), options[1] || '', opts.latest);
+        printResponse(res);
+      } else {
+        const qtypes = options.length === 0 ? options : ['ANY'];
+        const response = await beam.resolveZone(space, opts.latest);
+        response.qname = qname;
+        response.qtypes = qtypes.map(t => t.toUpperCase());
+
+        printDigStyleResponse(response, opts.latest);
       }
-
-      const qtypes = options.length > 0 ? options : ['ANY'];
-      const response = await beam.resolveZone(space, opts.latest);
-      response.qname = qname;
-      response.qtypes = qtypes.map(t => t.toUpperCase());
-
-      printDigStyleResponse(response, opts.latest);
     } catch (e) {
       console.error((e as Error).message);
     } finally {
@@ -332,13 +353,7 @@ program
       const result = await beam.fabric.eventGet(npub, kind, opts.dTag, {
         latest: opts.latest || false
       })
-
-      if (result) {
-        const event = toEvent(result.event);
-        console.log(event);
-      } else {
-        console.log('; No records found')
-      }
+      printResponse(result);
     } catch (e) {
       console.error((e as Error).message);
     } finally {
@@ -351,23 +366,37 @@ program
   });
 
 program
-  .command('publish <signed-packet>')
-  .description('Publish a signed nostr event\n')
-  .action(async (file: string, _: any, cmd: any) => {
+  .command('publish [event]')
+  .description('Publish a signed nostr event')
+  .action(async (file: string | undefined, _: any, cmd: any) => {
     const opts = cmd.optsWithGlobals();
     let beam: Beam;
     try {
-      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+      let input: string = '';
+
+      if (file && file !== '-') {
+        input = fs.readFileSync(file, 'utf8');
+      } else {
+        if (process.stdin.isTTY) {
+          input = '';
+        } else {
+          // Read from stdin asynchronously.
+          for await (const chunk of process.stdin) {
+            input += chunk;
+          }
+        }
+      }
+
+      const data = JSON.parse(input);
       beam = await Beam.create(opts);
       await publishEvent(beam, data);
     } catch (e) {
-      console.error(`Error publishing: `, e instanceof Error ? e.message : e);
+      console.error('Error publishing: ', e instanceof Error ? e.message : e);
     } finally {
       try {
         // @ts-ignore
         await beam.destroy();
-      } catch (_) {
-      }
+      } catch (_) {}
     }
   });
 
@@ -392,8 +421,6 @@ program
       const [name, ...parts] = space.split('/');
       const path = parts.join('/');
       await beam.connect(name, path);
-      await new Promise(() => {
-      });
     } catch (e) {
       console.error('error', (e as Error).message);
     } finally {
@@ -443,23 +470,21 @@ program
 
 const args = process.argv;
 
-for (let i = 0; i < args.length; i++) {
-  if (args[i].match(/^[a-f0-9]{64}$/) && i > 0 && args[i - 1].includes('beam')) {
-    const command = 'npub';
-    const argWithAt = args[i];
-    args.splice(i, 1);
-    args.splice(i, 0, command, argWithAt);
-    break;
-  }
-  if (args[i].includes('@') && i > 0 && args[i - 1].includes('beam')) {
-    const command = '@example';
-    const argWithAt = args[i];
-
-    args.splice(i, 1);
-    args.splice(i, 0, command, argWithAt);
-    break;
+for (let i = 1; i < args.length; i++) {
+  if (args[i - 1].includes('beam')) {
+    let command: string | null = null;
+    if (/^[a-f0-9]{64}$/.test(args[i])) {
+      command = 'npub';
+    } else if (args[i].includes('@')) {
+      command = '@example';
+    }
+    if (command) {
+      args.splice(i, 1, command, args[i]);
+      break;
+    }
   }
 }
+
 
 program.parse(args);
 

@@ -4,6 +4,8 @@
 | <img src="./logo.png" width="340"/> | <h1 align="left">Fabric</h1> <p align="left">Fabric is a free, open network that connects people and services without central control. Built on [hyperdht](https://github.com/holepunchto/hyperdht), it works with [Nostr](https://github.com/nostr-protocol/nostr) and [Spaces](https://spacesprotocol.org) to let you find someone by their sovereign handle (like `@example`) or by a public key (an `npub`).</p><br /> |
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
+> [!WARNING]  
+> Fabric is an experimental project and will see frequent updates in the near future. Expect some bumps as we refine it—join us to shape its evolution!
 
 **Fabric makes it easy to share who you are or find others in a decentralized world.** It’s like an address book for the internet’s sovereign future—built on [hyperdht](https://github.com/holepunchto/hyperdht), it links [Nostr](https://github.com/nostr-protocol/nostr) messages and [Spaces](https://spacesprotocol.org) (sovereign handles, like `@example`) so anyone can look up a name or an npub without needing a middleman.
 
@@ -12,6 +14,9 @@
 
 
 Fabric enables [spaces](https://spacesprotocol.org) to publish Nostr events and DNS records on the DHT without needing to store any bloat on the Bitcoin blockchain!
+
+
+
 
 ## Installation
 
@@ -49,7 +54,9 @@ beam @buffrr TXT --remote-anchors https://bitpki.com/root-anchors.json
 
 Note: This means you’re trusting BitPKI (or whoever you pick) to provide accurate anchors file, so its best to run your own Bitcoin full node + [spaces client](https://github.com/spacesprotocol/spaces) locally to generate your own, and keep it up to date.
 
-## Publishing Records for a Space
+## Publishing events for a space
+
+A DNS zone could be wrapped in a Nostr event and signed for publishing, alternatively you may sign any accepted Nostr event and publish it for your space.
 
 1. **Create a DNS zone file** (e.g., `example.zone`):
 
@@ -78,6 +85,42 @@ beam publish event.json
 ```
 
 You can also distribute event.json to a Fabric service operator for continuous publication.
+
+## Publishing Nostr Events for Your `npub`
+
+For example, here’s how to sign and share a NIP-65 relay list tied to your `npub` (your public key):
+
+1. **Create the relay list** (sign & save as `nip65.json`):
+   ```json
+   {
+     "kind": 10002,
+     "created_at": 1679673265,
+     "pubkey": "97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322",
+     "tags": [
+       ["r", "wss://alicerelay.example.com"],
+       ["r", "wss://brando-relay.com"],
+       ["r", "wss://expensive-relay.example2.com", "write"],
+       ["r", "wss://nostr-relay.example.com", "read"]
+     ],
+     "content": "",
+     "sig": "<signature>"
+   }
+   ```
+
+2. **Publish it** with `beam`:
+
+```shell
+beam publish nip65.json
+```
+
+3. **Look it up:**
+
+```shell
+beam 97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322 10002
+```
+
+Records stay live on the network for up to 48 hours. To keep them active, re-publish periodically with the same command, or give it to some service to `pin` it for you.
+
 
 ## Running a Fabric Node
 
