@@ -5,7 +5,7 @@
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 > [!NOTE]  
-> Fabric is an experimental project and will see frequent updates in the near future. Expect some bumps as we refine it—join us to shape its evolution!
+> Fabric is an experimental project and will see frequent updates. Expect some bumps as we refine it—join us to shape its evolution!
 
 **Fabric makes it easy to share who you are or find others in a decentralized world.** It’s like an address book for the internet’s sovereign future—built on [hyperdht](https://github.com/holepunchto/hyperdht), it links [Nostr](https://github.com/nostr-protocol/nostr) messages and [Spaces](https://spacesprotocol.org) (sovereign handles, like `@example`) so anyone can look up a name or an npub without needing a middleman.
 
@@ -54,37 +54,6 @@ beam @buffrr TXT --remote-anchors https://bitpki.com/root-anchors.json
 
 Note: This means you’re trusting BitPKI (or whoever you pick) to provide accurate anchors file, so its best to run your own Bitcoin full node + [spaces client](https://github.com/spacesprotocol/spaces) locally to generate your own, and keep it up to date.
 
-## Publishing events for a space
-
-A DNS zone could be wrapped in a Nostr event and signed for publishing, alternatively you may sign any accepted Nostr event and publish it for your space.
-
-1. **Create a DNS zone file** (e.g., `example.zone`):
-
-```
-@example. 3600 CLASS2 A   127.0.0.1
-@example. 3600 CLASS2 TXT "hello world"
-```
-
-2. **Sign the zone file** with `space-cli`:
-
-```
-space-cli signzone @example example.zone > event.json
-```
-
-3. **Publish** with beam:
-
-```
-beam publish event.json
-```
-
-The network retains records for up to 48 hours. To refresh, run:
-
-```
-space-cli refreshanchor event.json
-beam publish event.json
-```
-
-You can also distribute event.json to a Fabric service operator for continuous publication.
 
 ## Publishing Nostr Events for Your `npub`
 
@@ -120,6 +89,38 @@ beam 97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322 10002
 ```
 
 Records stay live on the network for up to 48 hours. To keep them active, re-publish periodically with the same command, or give it to some service to `pin` it for you.
+
+## Publishing events for a space
+
+A DNS zone could be wrapped in a Nostr event and signed for publishing, alternatively you may sign any accepted Nostr event and publish it for your space.
+
+1. **Create a DNS zone file** (e.g., `example.zone`):
+
+```
+@example. 3600 CLASS2 A   127.0.0.1
+@example. 3600 CLASS2 TXT "hello world"
+```
+
+2. **Sign the zone file** with `space-cli`:
+
+```
+space-cli signzone @example example.zone > event.json
+```
+
+3. **Publish** with beam:
+
+```
+beam publish event.json
+```
+
+The network retains records for up to 48 hours. To refresh, run:
+
+```
+space-cli refreshanchor event.json
+beam publish event.json
+```
+
+You can also distribute event.json to a Fabric service operator for continuous publication.
 
 
 ## Running a Fabric Node
