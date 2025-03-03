@@ -328,40 +328,38 @@ program
 
 
 program
-  .command('npub [options...]')
-  .requiredOption('--kind <kind>', 'The nostr event kind')
-  .option('--d-tag <dTag>', 'The nostr event d-tag for addresseable events', '')
-  .option('--latest', 'Find the latest version of a nostr event')
-  .description('Query nostr\'s events')
-  .action(async (options: string[], _ : any, cmd: any) => {
+  .command('npub <kind> [d-tag]')
+  .option('--latest', 'Find the latest version of the event')
+  .description('Query Nostr events for an npub')
+  .action(async (npub: string, kind: string, dTag: string | undefined, cmd: any) => {
     const opts = cmd.optsWithGlobals();
-    let beam: Beam;
+    let beam: Beam | null = null;
 
     try {
       beam = await Beam.create(opts);
       await beam.ready();
 
-      const npub = options.shift()!;
       if (!npub.match(/^[a-f0-9]{64}$/)) {
-        throw new Error(`must be a valid npub in hex format, got '${npub}'`);
-      }
-      const kind = parseInt(opts.kind);
-      if (isNaN(kind)) {
-        throw new Error(`must be a valid numeric event, got '${opts.kind}'`);
+        console.error(`Must be a valid npub in hex format, got '${npub}'`);
+        return;
       }
 
-      const result = await beam.fabric.eventGet(npub, kind, opts.dTag, {
-        latest: opts.latest || false
-      })
+      const eventKind = parseInt(kind);
+      if (isNaN(eventKind)) {
+        console.error(`Kind must be a number, got '${kind}'`);
+        return;
+      }
+
+      const result = await beam.fabric.eventGet(npub, eventKind, dTag || '', {
+        latest: opts.latest || false,
+      });
       printResponse(result);
     } catch (e) {
       console.error((e as Error).message);
     } finally {
       try {
-        // @ts-ignore
-        await beam.destroy();
-      } catch (_) {
-      }
+        if (beam) await beam.destroy();
+      } catch (_) {}
     }
   });
 
