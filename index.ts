@@ -5,11 +5,33 @@ import {BOOTSTRAP_NODES, COMMANDS} from './constants';
 import b4a from 'b4a';
 import * as m from './messages';
 import {DHT} from 'dht-rpc';
-import {Receipt, VeritasSync} from './veritas';
-import {spaceHash} from './utils';
+import {AnchorStore} from './anchor';
+import {
+  NostrEvent,
+  verifyTarget,
+  computeTarget,
+  computeSpaceTarget, computePubkeyTarget, isAcceptableEvent
+} from './utils';
+import {Buffer} from 'buffer';
+import {CompactEvent, toCompactEvent} from './messages';
 
-const defaultMaxSize = 32768;
+const defaultCacheMaxSize = 32768;
 const defaultMaxAge = 48 * 60 * 60 * 1000; // 48 hours
+
+interface NodeResposne {
+  token: any
+  from: any,
+  to: any,
+  event: CompactEvent
+}
+
+export interface FabricOptions extends HyperDHTOptions {
+    maxSize?: number;
+    maxAge?: number;
+    spaces?: MaxCacheOptions;
+    pubkeys?: MaxCacheOptions;
+    anchor?: AnchorStore;
+}
 
 export const ERROR = {
   // hyperdht errors
@@ -22,10 +44,10 @@ export const ERROR = {
   SEQ_REUSED: 16,
   SEQ_TOO_LOW: 17,
   // space related
-  INVALID_SIGNATURE: 25,
-  NO_MATCHING_TRUST_ANCHOR: 26,
-  NON_STALE_ANCESTOR_EXISTS: 27,
-  STALE_PROOF: 28,
+  EVENT_ANCHOR_REJECTED: 40,
+  EVENT_UNSUPPORTED: 42,
+  EVENT_TOO_NEW: 44,
+  EVENT_TOO_OLD: 45,
 };
 
 export const ERROR_STRING: Record<number, string> = {
@@ -38,56 +60,61 @@ export const ERROR_STRING: Record<number, string> = {
   [ERROR.SEQ_REUSED]: 'sequence reused',
   [ERROR.SEQ_TOO_LOW]: 'sequence too low',
   // fabric related
-  [ERROR.INVALID_SIGNATURE]: 'invalid signature',
-  [ERROR.NO_MATCHING_TRUST_ANCHOR]: 'no matching trust path',
-  [ERROR.NON_STALE_ANCESTOR_EXISTS]: 'non-stale ancestor trust path exists',
-  [ERROR.STALE_PROOF]: 'stale trust path',
+  [ERROR.EVENT_ANCHOR_REJECTED]: 'event anchor rejected',
+  [ERROR.EVENT_TOO_NEW]: 'event too far in the future',
+  [ERROR.EVENT_TOO_OLD]: 'event too old',
 };
 
-export interface FabricOptions extends HyperDHTOptions {
-    maxSize?: number;
-    maxAge?: number;
-    zones?: MaxCacheOptions;
-    veritas?: VeritasSync;
-}
-
 export class Fabric extends HyperDHT {
-  private _zones: Cache | null = null;
-  public veritas: VeritasSync;
+  private _spaces: Cache | null = null;
+  private _pubkeys: Cache | null = null;
+  public anchor: AnchorStore;
 
   constructor(opts: FabricOptions = {}) {
     opts.bootstrap = opts.bootstrap || BOOTSTRAP_NODES
     super(opts);
 
     this.once('persistent', () => {
-      this._zones = new Cache(opts.zones || {
-        maxSize: opts.maxSize || defaultMaxSize,
+      this._spaces = new Cache(opts.spaces || {
+        maxSize: opts.maxSize || defaultCacheMaxSize,
+        maxAge: opts.maxAge || defaultMaxAge,
+      });
+      this._pubkeys = new Cache(opts.pubkeys || {
+        maxSize: opts.maxSize || defaultCacheMaxSize,
         maxAge: opts.maxAge || defaultMaxAge,
       });
     });
 
-    if (!opts.veritas) throw new Error('Veritas options are required');
-    this.veritas = opts.veritas;
+    if (!opts.anchor) throw new Error('Anchor setup is required');
+    this.anchor = opts.anchor;
   }
 
   static bootstrapper(port: number, host: string, opts?: FabricOptions): DHT {
     return super.bootstrapper(port, host, opts)
   }
 
-  async zonePublish(space: string, value: Buffer, signature: Buffer, proof: Buffer, opts: any = {}) {
-    const target = spaceHash(space);
-    const seq = opts.seq || 0;
-    const signed = c.encode(m.zonePutRequest, {seq, value, signature, proof});
+  async eventPut(evt: NostrEvent, opts: any = {}) : Promise<any> {
+    if (!isAcceptableEvent(evt.kind)) throw new Error('Event kind not supported');
+    const raw = toCompactEvent(evt, opts.binary || false);
+    const p: CompactEvent | null = c.decode(m.compactEvent, raw);
+    if (!p) throw new Error('Could not decode event');
+
+    const targetInfo = computeTarget(p);
+    if (!opts.skipVerify) {
+      if (!this.anchor.verifySig(p)) throw new Error('signature verification failed');
+    }
+    if (targetInfo.space) this.anchor.assertAnchored(p, targetInfo);
+
     opts = {
       ...opts,
-      map: mapZone,
+      map: mapEvent,
       commit(reply: any, dht: any) {
         const q = async () => {
           const q = await dht.request({
             token: reply.token,
-            target,
-            command: COMMANDS.ZONE_PUT,
-            value: signed,
+            target: targetInfo.target,
+            command: COMMANDS.EVENT_PUT,
+            value: raw,
           }, reply.from);
           if (q.error !== 0) {
             const err = ERROR_STRING[q.error] || 'unknown';
@@ -99,40 +126,40 @@ export class Fabric extends HyperDHT {
       },
     };
 
-    const query = this.query({target, command: COMMANDS.ZONE_GET, value: c.encode(c.uint, 0)}, opts);
+    const query = this.query({target: targetInfo.target, command: COMMANDS.EVENT_GET, value: c.encode(c.uint, 0)}, opts);
     await query.finished();
 
-    return {target, closestNodes: query.closestNodes, seq, signature};
+    return {target: targetInfo.target, closestNodes: query.closestNodes, event: p};
   }
+  
+  async eventGet(spaceOrPubkey : string, kind : number, d : string = '', opts : any = {}) : Promise<any> {
+    if (!isAcceptableEvent(kind)) throw new Error('Event kind not supported');
+    const target = spaceOrPubkey.startsWith('@') ? computeSpaceTarget(spaceOrPubkey, kind, d) :
+      computePubkeyTarget(spaceOrPubkey, kind, d);
 
-  async zoneGet(space: string, opts: any = {}) {
-    const target = spaceHash(space);
     let refresh = opts.refresh || null;
     let signed: Buffer | Uint8Array | null = null;
     let result: any = null;
-    opts = {...opts, map: mapZone, commit: refresh ? commit : null};
+    opts = {...opts, map: mapEvent, commit: refresh ? commit : null};
 
-    const userSeq = opts.seq || 0;
-    const query = this.query({target, command: COMMANDS.ZONE_GET, value: c.encode(c.uint, userSeq)}, opts);
+    const userCreatedAt = opts.created_at || 0;
+    const query = this.query({target, command: COMMANDS.EVENT_GET, value: c.encode(c.uint, userCreatedAt)}, opts);
     const latest = opts.latest !== false;
     const closestNodes: Buffer[] = [];
 
     for await (const node of query) {
       closestNodes.push(node.from);
-      if (result && node.seq <= result.seq) continue;
-      if (node.seq < userSeq) continue;
-      const msg = c.encode(m.zoneSignable, {seq: node.seq, value: node.value});
-      try {
-        const receipt = this.veritas.verifyPut(target, msg, node.signature, node.proof);
-        if (!latest) {
-          result = node;
-          result.proofSeq = receipt.proofSeq;
-          break;
-        }
-        if (!result || (receipt.proofSeq > result.proofSeq && node.seq > result.seq)) result = node;
-      } catch (e) {
-        console.warn(`Could not verify from peer ${node.from.host}:${node.from.port}: ${e}`);
+      if (result && node.createdAt <= result.createdAt) continue;
+      if (node.createdAt < userCreatedAt) continue;
+      const targetInfo = verifyTarget(node.event, target);
+      if (!targetInfo) continue;
+      if (!this.anchor.verifySig(node.event)) continue;
+      if (targetInfo.space && !this.anchor.verifyAnchor(node.event, targetInfo)) continue;
+      if (!latest) {
+        result = node;
+        break;
       }
+      if (!result || (node.event.created_at > result.event.created_at)) result = node;
     }
     if (!result) {
       return null;
@@ -146,12 +173,7 @@ export class Fabric extends HyperDHT {
     function commit(reply: any, dht: Fabric) {
       if (!signed && result && refresh) {
         if (refresh(result)) {
-          signed = c.encode(m.zonePutRequest, {
-            seq: result.seq,
-            value: result.value,
-            signature: result.signature,
-            proof: result.proof
-          });
+          signed = c.encode(m.compactEvent, result.event);
         } else {
           refresh = null;
         }
@@ -161,143 +183,98 @@ export class Fabric extends HyperDHT {
         ? dht.request({
           token: reply.token,
           target,
-          command: COMMANDS.ZONE_PUT,
+          command: COMMANDS.EVENT_PUT,
           value: signed,
         }, reply.from)
         : Promise.resolve(null);
     }
   }
 
-  destroy(opts?: { force?: boolean }): Promise<void> {
-    super.destroy(opts);
-    this.veritas.destroy()
-    return Promise.resolve()
-  }
-
-
-
-  onzoneput(req: any) {
+  onEventPut(req: any) {
     if (!req.target || !req.token || !req.value) return;
-
-    const p = decode(m.zonePutRequest, req.value);
+    const p: CompactEvent = decode(m.compactEvent, req.value);
     if (!p) return;
+    if (!isAcceptableEvent(p.kind)) return;
 
-    const {seq, value, signature, proof} = p;
-    if (!value) return;
+    const targetInfo = verifyTarget(p, req.target);
+    if (!targetInfo) return;
+    if (!this.anchor.verifySig(p)) return;
 
-    const msg = c.encode(m.zoneSignable, {seq, value});
-    let receipt: Receipt | null = null;
-    let publicKey : Uint8Array | undefined;
-    try {
-      // Validate the proof first.
-      receipt = this.veritas.verifyPut(req.target, msg, signature, proof);
-      publicKey = receipt.spaceout.getPublicKey();
-      if (!publicKey) throw new Error('Expected a public key');
-    } catch (e: any) {
-      console.error(e);
-      req.error(typeof e == 'string' && e.includes('NoMatchingAnchor') ?
-        ERROR.NO_MATCHING_TRUST_ANCHOR : ERROR.INVALID_SIGNATURE
-      );
+    const isAnchored = !!targetInfo.space;
+    const k = b4a.toString(req.target, 'hex');
+
+    const local = isAnchored ? this._spaces?.get(k) : this._pubkeys?.get(k);
+    let existing: any = local ? decode(isAnchored ? m.eventRecord : m.compactEvent, local) : undefined;
+
+    if (existing) {
+      if (existing.created_at > p.created_at) {
+        req.error(ERROR.EVENT_TOO_OLD);
+        return;
+      }
+      const now = Math.floor(Date.now() / 1000);
+      const max = now + 30 * 24 * 60 * 60; // 30 days in future
+      if (p.created_at > max) {
+        req.error(ERROR.EVENT_TOO_NEW);
+        return;
+      }
+    }
+
+    if (isAnchored) {
+      try {
+        const store = this.anchor.assertAnchored(p, targetInfo, existing);
+        this._spaces?.set(k, c.encode(m.eventRecord, store));
+        req.reply(null);
+      } catch (e) {
+        req.error(ERROR.EVENT_ANCHOR_REJECTED);
+      }
       return;
     }
 
-    const k = b4a.toString(req.target, 'hex');
-    const local = this._zones?.get(k);
-    if (local) {
-      const existing = c.decode(m.zoneGetResponse, local);
-      const identical = existing.value && b4a.compare(value, existing.value) === 0;
-      const existingProofSeq = this.veritas.getProofSeq(existing.root);
-
-      // Prevent reuse of a sequence when the value has changed.
-      if (existing.value && !identical && existing.seq === seq) {
-        req.error(ERROR.SEQ_REUSED);
-        return;
-      }
-      // New updates must have a higher sequence.
-      if (seq < existing.seq) {
-        req.error(ERROR.SEQ_TOO_LOW);
-        return;
-      }
-
-      const pubkey_changed = b4a.compare(publicKey , existing.publicKey) !== 0;
-      if (pubkey_changed) {
-        // We only require that the new proof is higher than the stored proof.
-        if (existingProofSeq && receipt.proofSeq <= existingProofSeq) {
-          req.error(ERROR.STALE_PROOF);
-          return;
-        }
-      } else {
-        // Pubkeys still the same, we prefer older but non-stale proofs
-        if (existingProofSeq && receipt.proofSeq !== existingProofSeq) {
-          // If the submitted proof is stale and older than the stored proof, reject it.
-          // Note: this still allows older proofs to take priority over recent ones as long
-          // as they're not stale.
-          if (this.veritas.isStale(receipt.proofSeq) && receipt.proofSeq < existingProofSeq) {
-            req.error(ERROR.STALE_PROOF);
-            return;
-          }
-          // If the stored proof is still valid (non-stale) and the new proof is more recent,
-          // we reject the new proof since the value (and pubkey) hasn't changed.
-          //
-          // This ensures:
-          // 1. Clients with older trust anchors can continue to validate.
-          // 2. Someone can't publish very recent proofs for spaces they don't own to block older clients.
-          if (!this.veritas.isStale(existingProofSeq) && receipt.proofSeq > existingProofSeq) {
-            req.error(ERROR.NON_STALE_ANCESTOR_EXISTS);
-            return;
-          }
-        }
-      }
-    }
-
-    console.log(`zonePut: storing ${req.target.toString('hex')}`);
-    this._zones?.set(k, c.encode(m.zoneGetResponse, {
-      seq,
-      value,
-      signature,
-      root: receipt.root,
-      publicKey,
-      proof
-    }));
+    this._pubkeys?.set(k, c.encode(m.compactEvent, p))
     req.reply(null);
   }
 
-
-  onzoneget(req: any) {
+  onEventGet(req: any) {
     if (!req.target || !req.value) return;
 
-    let seq = 0;
+    let createdAt = 0;
     try {
-      seq = c.decode(c.uint, req.value);
+      createdAt = c.decode(c.uint, req.value);
     } catch {
       return;
     }
 
     const k = b4a.toString(req.target, 'hex');
-    const value = this._zones?.get(k);
+    const value = this._spaces?.get(k) || this._pubkeys?.get(k);
 
     if (!value) {
       req.reply(null);
       return;
     }
 
-    const localSeq = c.decode(c.uint, value);
-    req.reply(localSeq < seq ? null : value);
+    const localCreatedAt = c.decode(c.uint, value);
+    req.reply(localCreatedAt < createdAt ? null : value);
   }
 
   onrequest(req: any): boolean {
-    if (!this._zones) return super.onrequest(req);
+    if (!this._spaces || !this._pubkeys) return super.onrequest(req);
 
     switch (req.command) {
-    case COMMANDS.ZONE_PUT:
-      this.onzoneput(req);
+    case COMMANDS.EVENT_PUT:
+      this.onEventPut(req);
       return true;
-    case COMMANDS.ZONE_GET:
-      this.onzoneget(req);
+    case COMMANDS.EVENT_GET:
+      this.onEventGet(req);
       return true;
     default:
       return super.onrequest(req);
     }
+  }
+
+  destroy(opts?: { force?: boolean }): Promise<void> {
+    super.destroy(opts);
+    this.anchor.destroy()
+    return Promise.resolve()
   }
 }
 
@@ -309,20 +286,17 @@ function decode(enc: any, val: any) {
   }
 }
 
-function mapZone(node: any) {
+function mapEvent(node: any) : NodeResposne | null  {
   if (!node.value) return null;
 
   try {
-    const {seq, value, signature, proof} = c.decode(m.zoneGetResponse, node.value);
+    const event = c.decode(m.compactEvent, node.value);
 
     return {
       token: node.token,
       from: node.from,
       to: node.to,
-      seq,
-      value,
-      signature,
-      proof
+      event
     };
   } catch {
     return null;

@@ -1,5 +1,5 @@
 import {Fabric} from '../../index';
-import {VeritasSync} from '../../veritas';
+import {AnchorStore} from '../../anchor';
 import {staticAnchors} from './anchors';
 
 interface TestnetOptions {
@@ -18,10 +18,10 @@ export default async function createTestnet(size = 10, opts: TestnetOptions = {}
 
   if (size === 0) return new Testnet(swarm);
 
-  const veritas = await VeritasSync.create({staticAnchors})
+  const anchor = await AnchorStore.create({staticAnchors})
 
   const first = new Fabric({
-    veritas: veritas,
+    anchor,
     ephemeral: false,
     // @ts-ignore
     firewalled: false,
@@ -38,7 +38,7 @@ export default async function createTestnet(size = 10, opts: TestnetOptions = {}
   while (swarm.length < size) {
     const node = new Fabric({
       // @ts-ignore
-      veritas: veritas,
+      anchor: anchor,
       ephemeral: false,
       // @ts-ignore
       firewalled: false,

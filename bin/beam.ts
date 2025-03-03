@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 
 import {program} from 'commander';
-import {defineMainOptions, nodeOpts} from './common';
+import {defineMainOptions, joinHostPort, nodeOpts} from './common';
 import fs from 'fs';
 import {Fabric} from '../index';
 import dns from 'dns-packet';
-import {spaceHash} from '../utils';
-import {resolve, basename} from 'node:path';
+import {log, NostrEvent, validateEvent} from '../utils';
+import {basename, resolve} from 'node:path';
 import {KeyPair} from 'hypercore-crypto';
 import {Buffer} from 'buffer';
+import {compactEvent, toEvent} from '../messages';
+import {DNS_EVENT_KIND} from '../constants';
 import c from 'compact-encoding';
-import * as m from '../messages';
+import b4a from 'b4a';
 
 const beamTitle = '<<>> Beam 0.1 <<>>';
 
@@ -28,14 +30,6 @@ interface ResolveZoneResponse {
     elapsed: number;
 }
 
-interface SignedPacket {
-    space: string;
-    target: Buffer;
-    seq: number;
-    signature: Buffer;
-    value: Buffer;
-    proof: Buffer;
-}
 
 class Beam {
   fabric: Fabric;
@@ -133,8 +127,11 @@ class Beam {
         encryptedSocket.end();
       });
 
+      await new Promise(() => {
+      });
     } catch (e) {
       console.error('; ERROR connecting: ', (e as Error).message);
+      await this.destroy();
     }
   }
 
@@ -244,13 +241,14 @@ class Beam {
   async resolveZone(space: string, latest: boolean = false): Promise<ResolveZoneResponse> {
     const start = performance.now();
     const qtime = now();
-    const res = await this.fabric.zoneGet(space, {latest});
+    const res = await this.fabric.eventGet(space, DNS_EVENT_KIND, '', {latest});
     const elapsed = performance.now() - start;
 
     if (!res) throw new Error('No records found');
 
-    const {value, signature, from, proof} = res;
-    const zone = dns.decode(value);
+    const {event, from, closestNodes} = res;
+    const encoded = c.encode(compactEvent, event);
+    const zone = dns.decode(event.binary_content ? event.content : b4a.from(b4a.from(event.content).toString('utf-8'), 'base64'));
     if (!zone) {
       throw new Error('Failed to decode dns packet');
     }
@@ -258,10 +256,10 @@ class Beam {
     return {
       zone,
       space,
-      closestNodes: res.closestNodes,
-      size: value.length + signature.length + proof.length,
-      signature,
-      proof,
+      closestNodes,
+      size: encoded.length,
+      signature: event.sig,
+      proof: event.proof,
       peer: from,
       qtime,
       elapsed,
@@ -272,6 +270,22 @@ class Beam {
 defineMainOptions();
 
 program.name('beam');
+
+function printResponse(res: any) {
+  if (!res || !res.event || !res.from || !res.closestNodes) {
+    console.log('No records found');
+    return;
+  }
+
+  const event : any = toEvent(res.event);
+  event.peers = [
+    joinHostPort(res.from) + '#' + b4a.from(res.from.id).toString('hex')
+  ];
+  for (const node of res.closestNodes) {
+    event.peers.push(joinHostPort(node) + '#' + b4a.from(node.id).toString('hex'))
+  }
+  console.log(event)
+}
 
 program
   .command('@example [options...]')
@@ -290,15 +304,17 @@ program
       const space = labels[labels.length - 1];
       if (!space.startsWith('@')) {
         console.error(`space names must start with @, got '${space}'`);
-        return;
+      } else if (options.length > 0 && !isNaN(parseInt(options[0]))) {
+        const res = await beam.fabric.eventGet(space, parseInt(options[0]), options[1] || '', opts.latest);
+        printResponse(res);
+      } else {
+        const qtypes = options.length === 0 ? options : ['ANY'];
+        const response = await beam.resolveZone(space, opts.latest);
+        response.qname = qname;
+        response.qtypes = qtypes.map(t => t.toUpperCase());
+
+        printDigStyleResponse(response, opts.latest);
       }
-
-      const qtypes = options.length > 0 ? options : ['ANY'];
-      const response = await beam.resolveZone(space, opts.latest);
-      response.qname = qname;
-      response.qtypes = qtypes.map(t => t.toUpperCase());
-
-      printDigStyleResponse(response, opts.latest);
     } catch (e) {
       console.error((e as Error).message);
     } finally {
@@ -310,34 +326,83 @@ program
     }
   });
 
+
 program
-  .command('publish <signed-packet>')
-  .description('Publish a signed DNS packet to the Fabric network')
-  .action(async (file: string, _: any, cmd: any) => {
+  .command('npub <kind> [d-tag]')
+  .option('--latest', 'Find the latest version of the event')
+  .description('Query Nostr events for an npub')
+  .action(async (npub: string, kind: string, dTag: string | undefined, cmd: any) => {
+    const opts = cmd.optsWithGlobals();
+    let beam: Beam | null = null;
+
+    try {
+      beam = await Beam.create(opts);
+      await beam.ready();
+
+      if (!npub.match(/^[a-f0-9]{64}$/)) {
+        console.error(`Must be a valid npub in hex format, got '${npub}'`);
+        return;
+      }
+
+      const eventKind = parseInt(kind);
+      if (isNaN(eventKind)) {
+        console.error(`Kind must be a number, got '${kind}'`);
+        return;
+      }
+
+      const result = await beam.fabric.eventGet(npub, eventKind, dTag || '', {
+        latest: opts.latest || false,
+      });
+      printResponse(result);
+    } catch (e) {
+      console.error((e as Error).message);
+    } finally {
+      try {
+        if (beam) await beam.destroy();
+      } catch (_) {}
+    }
+  });
+
+program
+  .command('publish [event]')
+  .description('Publish a signed nostr event')
+  .action(async (file: string | undefined, _: any, cmd: any) => {
     const opts = cmd.optsWithGlobals();
     let beam: Beam;
     try {
-      const payload = readPacket(file);
+      let input: string = '';
+
+      if (file && file !== '-') {
+        input = fs.readFileSync(file, 'utf8');
+      } else {
+        if (process.stdin.isTTY) {
+          input = '';
+        } else {
+          // Read from stdin asynchronously.
+          for await (const chunk of process.stdin) {
+            input += chunk;
+          }
+        }
+      }
+
+      const data = JSON.parse(input);
       beam = await Beam.create(opts);
-
-      const signable = c.encode(m.zoneSignable, {seq: payload.seq, value: payload.value});
-      beam.fabric.veritas.verifyPut(payload.target, signable, payload.signature, payload.proof);
-
-      await beam.fabric.zonePublish(payload.space, payload.value, payload.signature, payload.proof, {
-        seq: payload.seq
-      })
-      console.log(`✓ Published ${payload.space} (serial: ${payload.seq})`);
-
+      await publishEvent(beam, data);
     } catch (e) {
-      console.error(`Error publishing packet: `, e instanceof Error ? e.message : e);
+      console.error('Error publishing: ', e instanceof Error ? e.message : e);
     } finally {
       try {
         // @ts-ignore
         await beam.destroy();
-      } catch (_) {
-      }
+      } catch (_) {}
     }
   });
+
+async function publishEvent(beam : Beam, evt: NostrEvent) {
+  if (!isNostrEvent(evt)) throw new Error('must be a signed nostr event')
+  await beam.fabric.eventPut(evt, { binary: evt.kind === DNS_EVENT_KIND})
+  console.log(`✓ Published ${evt.pubkey} (kind: ${evt.kind})`);
+}
 
 program
   .command('connect <space-uri>')
@@ -354,8 +419,6 @@ program
       const [name, ...parts] = space.split('/');
       const path = parts.join('/');
       await beam.connect(name, path);
-      await new Promise(() => {
-      });
     } catch (e) {
       console.error('error', (e as Error).message);
     } finally {
@@ -405,16 +468,21 @@ program
 
 const args = process.argv;
 
-for (let i = 0; i < args.length; i++) {
-  if (args[i].includes('@') && i > 0 && args[i - 1].includes('beam')) {
-    const command = '@example';
-    const argWithAt = args[i];
-
-    args.splice(i, 1);
-    args.splice(i, 0, command, argWithAt);
-    break;
+for (let i = 1; i < args.length; i++) {
+  if (args[i - 1].includes('beam')) {
+    let command: string | null = null;
+    if (/^[a-f0-9]{64}$/.test(args[i])) {
+      command = 'npub';
+    } else if (args[i].includes('@')) {
+      command = '@example';
+    }
+    if (command) {
+      args.splice(i, 1, command, args[i]);
+      break;
+    }
   }
 }
+
 
 program.parse(args);
 
@@ -431,7 +499,6 @@ function printDigStyleResponse(res: any, latest: boolean = false): void {
   );
 
   const authority = !anyReq && relevantAnswers.length === 0 ? [answers.find((a: any) => a.type === 'SOA')] : [];
-
 
   console.log(`; ${beamTitle} ${res.qname} ${res.qtypes.join(' ')}`);
   console.log(';; Got answer:');
@@ -515,18 +582,6 @@ function now(): string {
   });
 }
 
-function readPacket(filePath: string): SignedPacket {
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  if (!data.space || !data.serial || !data.packet || !data.signature || !data.proof) {
-    throw new Error('invalid packet');
-  }
-  const packet: SignedPacket = {
-    space: data.space,
-    target: spaceHash(data.space),
-    seq: data.serial,
-    signature: Buffer.from(data.signature, 'hex'),
-    value: Buffer.from(data.packet, 'base64'),
-    proof: Buffer.from(data.proof, 'base64')
-  };
-  return packet;
+function isNostrEvent(data: any) : boolean {
+  return data instanceof Object && validateEvent(data)
 }

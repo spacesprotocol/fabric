@@ -1,5 +1,3 @@
-import * as crypto from 'hypercore-crypto';
-
 export const BOOTSTRAP_NODES = [
   '107.152.45.120@fabric.buffrr.dev:22253',
 ]
@@ -16,14 +14,8 @@ export const COMMANDS = {
   MUTABLE_GET: 7,
   IMMUTABLE_PUT: 8,
   IMMUTABLE_GET: 9,
-  ZONE_PUT: 20,
-  ZONE_GET: 21
+  EVENT_PUT: 22,
+  EVENT_GET: 24,
 };
 
-const [NS_ZONE_PUT] = crypto.namespace('hyperswarm/dht', [
-  COMMANDS.ZONE_PUT
-]);
-
-export const NS = {
-  ZONE_PUT: NS_ZONE_PUT
-};
+export const DNS_EVENT_KIND = 871222;

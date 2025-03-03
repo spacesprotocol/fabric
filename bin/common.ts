@@ -1,6 +1,6 @@
 import { program } from 'commander';
 import { FabricOptions } from '../index';
-import { VeritasSync } from '../veritas';
+import { AnchorStore } from '../anchor';
 
 export interface MainOptions {
     host?: string;
@@ -23,8 +23,8 @@ export function defineMainOptions() {
     .option('--port <port>', 'The port to bind to')
     .option('--seeds <nodes...>', 'Connect to the following bootstrap nodes')
     .option('--peers <nodes...>', 'Include the following known peers')
-    .option('--local-anchors <local>', 'Specify a local file to sync anchors')
-    .option('--remote-anchors <remote...>', 'Specify remote urls to sync anchors');
+    .option('--local-anchors <local>', 'Specify a local file to load anchors')
+    .option('--remote-anchors <remote...>', 'Specify remote urls to load anchors');
 }
 
 export async function nodeOpts(opts: MainOptions): Promise<FabricOptions> {
@@ -50,11 +50,11 @@ export async function nodeOpts(opts: MainOptions): Promise<FabricOptions> {
         };
       })
       : [],
-    veritas: await veritasFromOpts(opts),
+    anchor: await anchorFromOpts(opts),
   };
 }
 
-export async function veritasFromOpts(opts: MainOptions): Promise<VeritasSync> {
+export async function anchorFromOpts(opts: MainOptions): Promise<AnchorStore> {
   const localAnchors = opts.localAnchors || process.env.FABRIC_LOCAL_ANCHORS;
   const remoteAnchors =
         opts.remoteAnchors ||
@@ -62,12 +62,13 @@ export async function veritasFromOpts(opts: MainOptions): Promise<VeritasSync> {
           ? process.env.FABRIC_REMOTE_ANCHORS.split(',')
           : ['http://127.0.0.1:7225/root-anchors.json']);
 
-  return VeritasSync.create({
+  return AnchorStore.create({
     localPath: localAnchors,
     remoteUrls: remoteAnchors,
   });
 }
 
-export function joinHostPort(address: Address): string {
+export function joinHostPort(address: Address | null): string {
+  if (!address) return '--';
   return `${address?.host}:${address?.port}`;
 }
