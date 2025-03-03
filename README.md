@@ -4,13 +4,13 @@
 | <img src="./logo.png" width="340"/> | <h1 align="left">Fabric</h1> <p align="left">Fabric is a free, open network that connects people and services without central control. Built on [hyperdht](https://github.com/holepunchto/hyperdht), it works with [Nostr](https://github.com/nostr-protocol/nostr) and [Spaces](https://spacesprotocol.org) to let you find someone by their sovereign handle (like `@example`) or by a public key (an `npub`).</p><br /> |
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
-> [!WARNING]  
+> [!NOTE]  
 > Fabric is an experimental project and will see frequent updates in the near future. Expect some bumps as we refine it—join us to shape its evolution!
 
 **Fabric makes it easy to share who you are or find others in a decentralized world.** It’s like an address book for the internet’s sovereign future—built on [hyperdht](https://github.com/holepunchto/hyperdht), it links [Nostr](https://github.com/nostr-protocol/nostr) messages and [Spaces](https://spacesprotocol.org) (sovereign handles, like `@example`) so anyone can look up a name or an npub without needing a middleman.
 
 
-**Note:** Fabric is not a replacement for Nostr relays! It's intended for publishing small pieces of discovery information. For example, you could share a [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) relay list for your npub! Fabric accepts replaceable and addressable Nostr events.
+Fabric is not a replacement for Nostr relays! It's intended for publishing small pieces of discovery information. For example, you could share a [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) relay list for your npub! Fabric accepts replaceable and addressable Nostr events.
 
 
 Fabric enables [spaces](https://spacesprotocol.org) to publish Nostr events and DNS records on the DHT without needing to store any bloat on the Bitcoin blockchain!

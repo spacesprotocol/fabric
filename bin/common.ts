@@ -18,7 +18,7 @@ interface Address {
 
 export function defineMainOptions() {
   program
-    .version('0.0.2')
+    .version('0.0.4')
     .option('--host <host>', 'The host to bind to')
     .option('--port <port>', 'The port to bind to')
     .option('--seeds <nodes...>', 'Connect to the following bootstrap nodes')
