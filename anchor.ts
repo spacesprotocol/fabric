@@ -1,7 +1,7 @@
 import fs from 'fs';
-import {Veritas, SpaceOut} from '@spacesprotocol/veritas';
+import {Veritas, SLabel} from '@spacesprotocol/veritas';
 import b4a from 'b4a';
-import {nostrDTag, nostrTarget} from './utils';
+import {EventRecord, CompactEvent, signableCompactEvent, TargetInfo} from './messages';
 
 interface Anchor {
     root: string;
@@ -11,38 +11,31 @@ interface Anchor {
     };
 }
 
-export interface Receipt {
-    trustpoint: number,
-    root: Uint8Array,
-    spaceout: SpaceOut,
-}
-
-interface SyncOptions {
+interface UpdateOptions {
     localPath?: string;        // Local file
-    remoteUrls?: string[];     // Optional remote endpoints to fetch anchor file
-    staticAnchors?: Anchor[];   // Optional use the following static anchors instead
+    remoteUrls?: string[];     // Remote endpoints to fetch anchor file
+    staticAnchors?: Anchor[];  // Use the following static anchors
     checkIntervalMs?: number;  // Periodic refresh
 }
 
-export class VeritasSync {
+export class AnchorStore {
   private veritas: Veritas;
   private trustPoints: Map<string, number>;
   private fileWatcher: fs.FSWatcher | null = null;
   private intervalId: NodeJS.Timeout | null = null;
-  private destroyed = false; // Flag to stop retry loop
-
+  private destroyed = false;
   // A block height/version number where proofs below are considered stale
   private staleThreshold: number = 0;
 
-  public static async create(options: SyncOptions): Promise<VeritasSync> {
-    const obj = new VeritasSync(options);
+  public static async create(options: UpdateOptions): Promise<AnchorStore> {
+    const obj = new AnchorStore(options);
     if (!options.staticAnchors) {
       await obj.refreshAnchors(true);
     }
     return obj;
   }
 
-  private constructor(private options: SyncOptions) {
+  private constructor(private options: UpdateOptions) {
     const usingLocal = !!options.localPath;
     const usingRemote = !!options.remoteUrls;
     const usingStaticAnchors = !!options.staticAnchors;
@@ -83,97 +76,71 @@ export class VeritasSync {
     return this.trustPoints.get(b4a.toString(root, 'hex'))
   }
 
-  public verifySchnorr(pubkey: Uint8Array, digest: Uint8Array, signature: Uint8Array): void {
-    this.veritas.verifySchnorr(pubkey, digest, signature)
+  public verifySig(evt: CompactEvent): boolean {
+    const digest = Veritas.sha256(signableCompactEvent(evt));
+    return this.veritas.verifySchnorr(evt.pubkey, digest, evt.sig)
   }
 
-  public sha256(data: Uint8Array): Uint8Array {
-    return this.veritas.sha256(data)
-  }
-
-  public verifyNostr(target: Uint8Array, value: Uint8Array, publicKey: Uint8Array, signature: Uint8Array): number {
-    const digest = this.veritas.sha256(value);
-
-    // Throws on failure
-    this.veritas.verifySchnorr(publicKey, digest, signature);
-
-    let evt;
+  public verifyAnchor(evt: CompactEvent, targetInfo: TargetInfo, prev?: EventRecord) : EventRecord | undefined {
     try {
-      const jsonString = new TextDecoder().decode(value);
-      evt = JSON.parse(jsonString);
+      return this.assertAnchored(evt, targetInfo, prev);
     } catch (e) {
-      throw new Error('malformed event');
+      return undefined;
     }
-    if (evt.length < 5) throw new Error('bad event: expected at least 5 items');
-
-    const [version, evtPubkey, evtCreatedAt, evtKind, tags] = evt;
-    const publicKeyHex = b4a.toString(publicKey, 'hex');
-    if (version !== 0 || publicKeyHex !== evtPubkey || typeof evtCreatedAt !== 'number' || typeof evtKind !== 'number') {
-      throw new Error('malformed event');
-    }
-
-    const isAddressable = this.isAddressableEvent(evtKind);
-    if (!isAddressable && !this.isReplaceableEvent(evtKind)) {
-      throw new Error('unsupported event');
-    }
-
-    // Extract 'd' tag for addressable events
-    let d = '';
-    if (isAddressable) {
-      const dTag = nostrDTag(tags);
-      if (!dTag || dTag == '') throw new Error('addressable event missing required "d" tag');
-      d = dTag[1];
-    }
-
-    const targetString = nostrTarget(publicKeyHex, evtKind, d);
-    const expectedTarget = this.veritas.sha256(b4a.from(targetString));
-    if (b4a.compare(target, expectedTarget) !== 0) {
-      throw new Error('unexpected target');
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    const maxCreatedAt = now + 30 * 24 * 60 * 60; // 30 days in future
-    if (evtCreatedAt > maxCreatedAt) {
-      throw new Error('event too far in the future');
-    }
-
-    return evtCreatedAt;
   }
 
-  public verifyZone(
-    target: Uint8Array,
-    msg: Uint8Array,
-    signature: Uint8Array,
-    proof: Uint8Array
-  ): Receipt {
-    const subtree = this.veritas.verifyProof(proof);
-    const spaceout = subtree.findSpace(target);
-    if (!spaceout) {
-      throw new Error('No UTXO associated with target');
-    }
+  public assertAnchored(evt: CompactEvent, targetInfo: TargetInfo, prev?: EventRecord): EventRecord {
+    if (!targetInfo.space) throw new Error('Not a space anchored')
+    if (evt.proof.length === 0) throw new Error('Proof needed')
 
-    // Throws on failure
-    this.veritas.verifyMessage(spaceout, msg, signature);
-    const root = subtree.getRoot();
-    const rootKey = b4a.toString(subtree.getRoot(), 'hex');
-    const trustpoint = this.trustPoints.get(rootKey);
-    if (!trustpoint) {
-      throw new Error('Could not find proof version');
-    }
+    const proof = this.veritas.verifyProof(evt.proof);
+    const space = new SLabel(targetInfo.space);
+    const utxo = proof.findSpace(space);
+    if (!utxo) throw new Error('No space utxo found in proof');
+    const taproot_pubkey = utxo.getPublicKey();
+    if (!taproot_pubkey) throw new Error('Expected a P2TR space utxo');
+    if (b4a.compare(taproot_pubkey, evt.pubkey) !== 0) throw new Error('Anchored event must be signed with utxo pubkey');
 
-    return {
-      trustpoint,
-      root,
-      spaceout
+    // Valid anchored event
+    const a: EventRecord = {
+      event: evt,
+      root: proof.getRoot()
     };
-  }
 
-  private isReplaceableEvent(evtKind: number): boolean {
-    return evtKind === 0 || evtKind === 3 || (evtKind >= 10000 && evtKind < 20000);
-  }
+    // If we have an existing one stored, we need to do other
+    // checks to see which takes priority.
+    if (!prev) return a;
 
-  private isAddressableEvent(evtKind: number): boolean {
-    return evtKind >= 30000 && evtKind < 40000;
+    // local one might have become outdated/removed from anchors list
+    const localPoint = this.getTrustPoint(prev.root);
+    if (typeof localPoint !== 'number') return a;
+
+    const evtPoint = this.getTrustPoint(a.root);
+    if (typeof evtPoint !== 'number') throw new Error('point not in the anchors list');
+    if (evtPoint === localPoint) return a;
+      
+    const pubkey_changed = b4a.compare(a.event.pubkey, prev.event.pubkey) !== 0;
+
+    // Space was transferred, we only require that the new proof is higher than the stored proof.
+    if (pubkey_changed) {
+      if (evtPoint < localPoint) throw new Error('stale proof');
+      return a;
+    }
+
+    // Pubkeys match, we prefer older but non-stale proofs (stale proofs are below staleThreshold)
+    // If the submitted proof is stale and older than the stored proof, reject it.
+    // Note: this still allows older proofs to take priority over recent ones as long
+    // as they're not stale.
+    if (this.isStale(evtPoint) && evtPoint < localPoint)  throw new Error('stale proof');
+
+    // If the stored proof is still valid (non-stale) and the new proof is more recent,
+    // we reject the new proof since the pubkey hasn't changed.
+    //
+    // This ensures:
+    // 1. Clients with older trust anchors can continue to validate.
+    // 2. Someone can't publish very recent proofs for spaces they don't own to block older clients.
+    if (!this.isStale(localPoint) && evtPoint > localPoint) throw new Error('non-stale ancestor exists')
+    return a
   }
 
   public destroy(): void {

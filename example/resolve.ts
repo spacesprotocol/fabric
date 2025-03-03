@@ -1,37 +1,35 @@
 import {Fabric} from '../index';
-import {VeritasSync} from '../veritas';
 import dns from 'dns-packet';
+import {AnchorStore} from '../anchor';
+import {DNS_EVENT_KIND} from '../constants';
+import {toEvent} from '../messages';
 
 async function main() {
   const fabric = new Fabric({
     // Load trust anchors
-    veritas: await VeritasSync.create({
+    anchor: await AnchorStore.create({
       remoteUrls: ['http://127.0.0.1:7225/root-anchors.json'],
       // OR use a public service e.g.
       // remoteUrls: ['https://bitpki.com/root-anchors.json']
-      // Alternatively specify static ones (must be updated periodically to allow new spaces)
-      // staticAnchors: [
-      //   {
-      //     root: 'c9395f0256c5f665f30f191af459836f92073901f609d1dc6db0bc8787d82dbf',
-      //     block: {
-      //       hash: '00000000000000000001491cc9a1da165e4d2f1b248cbc0ae024b9ad8f8e9a07',
-      //       height: 885060
-      //     }
-      //   },
-      //   ...
-      // ]
     })
   });
 
-  // Fetching spaces/forward lookups
-  const {value : dnsPacket} = await fabric.zoneGet('@buffrr');
-  const records = dns.decode(dnsPacket);
+  // Fetching by spaces/forward lookups
+  const res = await fabric.eventGet('@buffrr', DNS_EVENT_KIND);
+  const records = dns.decode(res.event.content);
   console.log('records: ', records);
-  await fabric.destroy();
 
-  // Nostr (reverse lookups by npub)
-  // Nostr events: await fabric.nostrGet('<npub>', <kind>, '<optional-d-tag>')
-  // Publish nostr events: await fabric.nostrPublish(jsonEvent);
+  // Fetching by pubkeys/reverse lookups
+  const RELAY_LIST_EVENT_KIND = 10002; // NIP-65
+  const res2 = await fabric.eventGet('d85391f4c095368da0f40a16c3aa92ae4afd0bf9e4c5192ea8c003ed0a8ca83a', RELAY_LIST_EVENT_KIND);
+
+  console.log(toEvent(res2.event))
+
+  // Publishing events
+  // const signedNostrEvent = { ... };
+  // await fabric.eventPut(signedNostrEvent);
+
+  await fabric.destroy();
 }
 
 main();

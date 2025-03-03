@@ -1,16 +1,7 @@
-import crypto from 'crypto';
 import b4a from 'b4a';
-
-export function spaceHash(spaceName: string): Buffer {
-  const label = spaceName.startsWith('@') ? spaceName.slice(1) : spaceName;
-  const byteArray = Buffer.from(label, 'utf8');
-  const lengthPrefix = Buffer.from([byteArray.length]);
-  const finalByteArray = Buffer.concat([lengthPrefix, byteArray]);
-  const base = Buffer.from(crypto.createHash('sha256').update(finalByteArray).digest('hex'), 'hex');
-  base[0] &= 0x7f;
-  base[31] &= 0xfe;
-  return base;
-}
+import {CompactEvent, TargetInfo} from './messages';
+import {Veritas} from '@spacesprotocol/veritas';
+import {DNS_EVENT_KIND} from './constants';
 
 // from nostr-tools:
 // https://github.com/nbd-wtf/nostr-tools/blob/160987472fd4922dd80c75648ca8939dd2d96cc0/event.ts#L42
@@ -22,6 +13,7 @@ export type NostrEvent = {
   pubkey: string
   content: string
   created_at: number
+  proof?: string
 }
 
 // from nostr-tools:
@@ -59,29 +51,75 @@ export function serializeEvent(evt : NostrEvent) {
   ]);
 }
 
-export function deserializeEvent(serialized: string): NostrEvent {
-  let arr: any;
+export function nostrTarget(key: string, kind: number, d : string = '') : string {
+  if (key.length != 64 || !key.match(/^[a-f0-9]{64}$/)) throw new Error('must be a 32-byte hex encoded key string');
+  if (isNaN(kind)) throw new Error(`kind must be a number, got ${kind}`);
+  return `${key}.${kind}.${d}`;
+}
+
+export function isAcceptableEvent(evtKind: number) : boolean {
+  return evtKind == DNS_EVENT_KIND || isReplaceableEvent(evtKind) || isAddressableEvent(evtKind)
+}
+
+export function isReplaceableEvent(evtKind: number): boolean {
+  return evtKind === 0 || evtKind === 3 || (evtKind >= 10000 && evtKind < 20000);
+}
+
+export function isAddressableEvent(evtKind: number): boolean {
+  return evtKind >= 30000 && evtKind < 40000;
+}
+
+export function computeSpaceTarget(space : string, kind : number, d : string = '') : Uint8Array {
+  if (!space.startsWith('@')) throw new Error('space name must start with @')
+
+  const key = Veritas.sha256(b4a.from(space, 'utf-8'));
+  const targetString = nostrTarget(b4a.toString(key, 'hex'), kind, d);
+  return Veritas.sha256(b4a.from(targetString, 'utf-8'));
+}
+
+export function computePubkeyTarget(pubkey: string | Uint8Array, kind : number, d : string = '') : Uint8Array {
+  let pub : string = pubkey instanceof Uint8Array ? b4a.from(pubkey).toString('hex') : pubkey;
+  if (pub.length !== 64 || !pub.match(/^[a-f0-9]{64}$/)) throw new Error('invalid pubkey');
+  const targetString = nostrTarget(pub, kind, d);
+  return Veritas.sha256(b4a.from(targetString, 'utf-8'));
+}
+
+export function computeTarget(evt: CompactEvent) : TargetInfo {
+  const anchored = evt.proof.length !== 0;
+  if (isNaN(evt.kind)) throw new Error('Invalid event kind must be a number');
+
+  let space, d;
+
+  for (const tag of evt.tags) {
+    if (tag.length < 2) continue;
+    if (!space && anchored && tag[0] === 'space') {
+      space = tag[1];
+      continue;
+    }
+    if (!d && tag[0] === 'd') {
+      d = tag[1];
+    }
+    if (space && d) break;
+  }
+
+  if (anchored && !space) throw new Error('Anchored event must have a space tag');
+  if (isAddressableEvent(evt.kind) && !d) throw new Error('Addressable events must have a d tag');
+
+  d = d || '';
+  const target = space ? computeSpaceTarget(space, evt.kind, d) :
+    computePubkeyTarget(evt.pubkey, evt.kind, d);
+
+  return {
+    d, space, target
+  }
+}
+
+export function verifyTarget(evt: CompactEvent, target: Uint8Array): TargetInfo | null {
   try {
-    arr = JSON.parse(serialized);
+    const expected = computeTarget(evt);
+    if (b4a.compare(target, expected.target) !== 0) return null;
+    return expected
   } catch (e) {
-    throw new Error('Invalid Nostr event JSON string');
+    return null
   }
-
-  if (!Array.isArray(arr) || arr.length !== 6 || arr[0] !== 0) {
-    throw new Error('Serialized event has an invalid format');
-  }
-  const [, pubkey, created_at, kind, tags, content] = arr;
-  return { pubkey, created_at, kind, tags, content };
-}
-
-
-export function nostrDTag(tags : any) : string {
-  if (!Array.isArray(tags)) return ''
-  const tag = (tags as any[]).find(tag => Array.isArray(tag) && tag[0] === 'd' && typeof tag[1] === 'string')
-  if (!tag) return '';
-  return tag
-}
-
-export function nostrTarget(pubkey: string, kind: number, d : string = '') : string {
-  return `${pubkey}${kind}${d}`;
 }

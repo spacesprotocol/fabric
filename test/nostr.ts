@@ -1,7 +1,7 @@
 import test from 'brittle'
 import {swarm} from './helpers'
-import b4a from 'b4a'
 import {serializeEvent} from '../utils';
+import {toEvent} from '../messages';
 
 const event1 = {
   created_at: 10000,
@@ -32,45 +32,33 @@ test('nostr put - get', async function (t) {
     evt.sig = '297a1077719bef43071720b303b5f589da68760c736eb503dfa0a5cd66cc72343ffbfc0be99ce0d5efb570887b25aaf564ea46e31e166c2ba2b4b3d7b929b35f';
 
     await t.exception (
-      nodes[0].nostrPublish(evt, {skipVerify: true})
+      nodes[0].eventPut(evt, {skipVerify: true})
     );
   }
 
   {
     let evt = JSON.parse(JSON.stringify(event1));
-    const put = await nodes[0].nostrPublish(evt);
+    const put = await nodes[0].eventPut(evt);
 
-    t.is(put.signature.length, 64)
+    t.is(serializeEvent(toEvent(put.event)), serializeEvent(evt));
 
-    const sig = b4a.from(evt.sig, 'hex');
-    const res = await nodes[1].nostrGet(evt.pubkey, evt.kind);
+    const res = await nodes[1].eventGet(evt.pubkey, evt.kind);
 
-    t.is(res.createdAt, evt.created_at)
-
-    const expected = b4a.from(serializeEvent(evt));
-    t.is(b4a.compare(res.value, expected), 0)
-    t.is(b4a.compare(res.signature, sig), 0)
+    t.is(serializeEvent(toEvent(res.event)), serializeEvent(evt));
   }
 
   // higher timestamp should override
   {
     let evt = JSON.parse(JSON.stringify(event2));
-    const put = await nodes[0].nostrPublish(evt);
+    const put = await nodes[0].eventPut(evt);
 
-    t.is(put.signature.length, 64)
-
-    const sig = b4a.from(evt.sig, 'hex');
-    const res = await nodes[1].nostrGet(evt.pubkey, evt.kind);
-
-    t.is(res.createdAt, evt.created_at)
-
-    const expected = b4a.from(serializeEvent(evt));
-    t.is(b4a.compare(res.value, expected), 0)
-    t.is(b4a.compare(res.signature, sig), 0)
+    t.is(serializeEvent(toEvent(put.event)), serializeEvent(event2));
+    const res = await nodes[1].eventGet(evt.pubkey, evt.kind);
+    t.is(serializeEvent(toEvent(res.event)), serializeEvent(event2));
   }
 
   // now publish stale event
   {
-    await t.exception(nodes[0].nostrPublish(event1));
+    await t.exception(nodes[0].eventPut(event1));
   }
 })

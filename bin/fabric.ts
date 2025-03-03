@@ -29,6 +29,10 @@ async function main(opts: FabricOptions): Promise<void> {
     node = Fabric.bootstrapper(Number(opts.port) || 0, opts.host, opts);
   } else {
     console.log('Starting Fabric node...');
+    if (typeof opts.port === 'number' && opts.port !== 0) {
+      // @ts-ignore
+      opts.firewalled = false;
+    }
     node = new Fabric(opts);
   }
 
@@ -45,8 +49,8 @@ async function main(opts: FabricOptions): Promise<void> {
   });
 
   await node.ready();
+  console.log('Listening at:', joinHostPort(node.address()));
 
-  console.log('Node ready');
   process.once('SIGINT', function () {
     node.destroy();
   });

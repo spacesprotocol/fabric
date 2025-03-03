@@ -3,12 +3,15 @@
 import {program} from 'commander';
 import {defineMainOptions, nodeOpts} from './common';
 import fs from 'fs';
-import {Fabric, SignedPacket} from '../index';
+import {Fabric} from '../index';
 import dns from 'dns-packet';
-import {deserializeEvent, NostrEvent, validateEvent} from '../utils';
+import {NostrEvent, validateEvent} from '../utils';
 import {basename, resolve} from 'node:path';
 import {KeyPair} from 'hypercore-crypto';
 import {Buffer} from 'buffer';
+import {compactEvent, toEvent} from '../messages';
+import {DNS_EVENT_KIND} from '../constants';
+import c from 'compact-encoding';
 import b4a from 'b4a';
 
 const beamTitle = '<<>> Beam 0.1 <<>>';
@@ -235,13 +238,14 @@ class Beam {
   async resolveZone(space: string, latest: boolean = false): Promise<ResolveZoneResponse> {
     const start = performance.now();
     const qtime = now();
-    const res = await this.fabric.zoneGet(space, {latest});
+    const res = await this.fabric.eventGet(space, DNS_EVENT_KIND, '', {latest});
     const elapsed = performance.now() - start;
 
     if (!res) throw new Error('No records found');
 
-    const {value, signature, from, proof} = res;
-    const zone = dns.decode(value);
+    const {event, from, closestNodes} = res;
+    const encoded = c.encode(compactEvent, event);
+    const zone = dns.decode(event.binary_content ? event.content : b4a.from(b4a.from(event.content).toString('utf-8'), 'base64'));
     if (!zone) {
       throw new Error('Failed to decode dns packet');
     }
@@ -249,10 +253,10 @@ class Beam {
     return {
       zone,
       space,
-      closestNodes: res.closestNodes,
-      size: value.length + signature.length + proof.length,
-      signature,
-      proof,
+      closestNodes,
+      size: encoded.length,
+      signature: event.sig,
+      proof: event.proof,
       peer: from,
       qtime,
       elapsed,
@@ -325,13 +329,12 @@ program
         throw new Error(`must be a valid numeric event, got '${opts.kind}'`);
       }
 
-      const result = await beam.fabric.nostrGet(npub, kind, opts.dTag, {
+      const result = await beam.fabric.eventGet(npub, kind, opts.dTag, {
         latest: opts.latest || false
       })
 
       if (result) {
-        const jsonString = b4a.toString(result.value, 'utf-8');
-        const event = deserializeEvent(jsonString);
+        const event = toEvent(result.event);
         console.log(event);
       } else {
         console.log('; No records found')
@@ -349,25 +352,14 @@ program
 
 program
   .command('publish <signed-packet>')
-  .description('Publish a signed DNS packets or Nostr events\n')
-  .option('--type <type>', 'Specify the payload type "dns" or "nostr"')
+  .description('Publish a signed nostr event\n')
   .action(async (file: string, _: any, cmd: any) => {
     const opts = cmd.optsWithGlobals();
     let beam: Beam;
     try {
       const data = JSON.parse(fs.readFileSync(file, 'utf8'));
       beam = await Beam.create(opts);
-      const payloadType = opts.type || (isNostrEvent(data) ? 'nostr' : undefined) || (isDnsPacket(data) ? 'dns' : undefined)
-      switch (payloadType) {
-      case 'nostr':
-        await publishNostr(beam, data);
-        break;
-      case 'dns':
-        await publishDns(beam, data)
-        break;
-      default:
-        throw new Error('payload must be a dns packet or signed nostr event')
-      }
+      await publishEvent(beam, data);
     } catch (e) {
       console.error(`Error publishing: `, e instanceof Error ? e.message : e);
     } finally {
@@ -379,16 +371,10 @@ program
     }
   });
 
-async function publishNostr(beam : Beam, evt: NostrEvent) {
+async function publishEvent(beam : Beam, evt: NostrEvent) {
   if (!isNostrEvent(evt)) throw new Error('must be a signed nostr event')
-  await beam.fabric.nostrPublish(evt)
+  await beam.fabric.eventPut(evt, { binary: evt.kind === DNS_EVENT_KIND})
   console.log(`✓ Published ${evt.pubkey} (kind: ${evt.kind})`);
-}
-
-async function publishDns(beam : Beam, data: any) {
-  const payload = readPacket(data);
-  await beam.fabric.zonePublish(payload)
-  console.log(`✓ Published ${payload.space} (serial: ${payload.serial})`);
 }
 
 program
@@ -491,7 +477,6 @@ function printDigStyleResponse(res: any, latest: boolean = false): void {
 
   const authority = !anyReq && relevantAnswers.length === 0 ? [answers.find((a: any) => a.type === 'SOA')] : [];
 
-
   console.log(`; ${beamTitle} ${res.qname} ${res.qtypes.join(' ')}`);
   console.log(';; Got answer:');
   console.log(';; ->>HEADER<<- opcode: QUERY, status: NOERROR');
@@ -576,19 +561,4 @@ function now(): string {
 
 function isNostrEvent(data: any) : boolean {
   return data instanceof Object && validateEvent(data)
-}
-
-function isDnsPacket(data: any) : boolean {
-  return data instanceof Object && data.space && data.serial && data.packet && data.signature && data.proof
-}
-
-function readPacket(data: any): SignedPacket {
-  if (!isDnsPacket(data)) throw new Error('must be a valid signed dns packet')
-  return {
-    space: data.space,
-    serial: data.serial,
-    signature: Buffer.from(data.signature, 'hex'),
-    value: Buffer.from(data.packet, 'base64'),
-    proof: Buffer.from(data.proof, 'base64')
-  };
 }

@@ -14,8 +14,8 @@ export const COMMANDS = {
   MUTABLE_GET: 7,
   IMMUTABLE_PUT: 8,
   IMMUTABLE_GET: 9,
-  ZONE_PUT: 20,
-  ZONE_GET: 21,
-  NOSTR_PUT: 22,
-  NOSTR_GET: 24,
+  EVENT_PUT: 22,
+  EVENT_GET: 24,
 };
+
+export const DNS_EVENT_KIND = 871222;
