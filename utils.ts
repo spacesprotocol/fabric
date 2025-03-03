@@ -123,3 +123,8 @@ export function verifyTarget(evt: CompactEvent, target: Uint8Array): TargetInfo 
     return null
   }
 }
+
+export function log(...args: any[]): void {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}]`, ...args);
+}

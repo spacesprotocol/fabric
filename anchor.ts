@@ -2,6 +2,7 @@ import fs from 'fs';
 import {Veritas, SLabel} from '@spacesprotocol/veritas';
 import b4a from 'b4a';
 import {EventRecord, CompactEvent, signableCompactEvent, TargetInfo} from './messages';
+import {log} from './utils';
 
 interface Anchor {
     root: string;
@@ -55,7 +56,7 @@ export class AnchorStore {
       this.fileWatcher = fs.watch(this.options.localPath!, (eventType) => {
         if (eventType === 'change') {
           this.refreshAnchors().catch(err => {
-            console.error(`Error refreshing anchors on file change: ${err}`);
+            log(`Error refreshing anchors on file change: ${err}`);
           });
         }
       });
@@ -66,7 +67,7 @@ export class AnchorStore {
       const interval = this.options.checkIntervalMs ?? defaultCheckInterval;
       this.intervalId = setInterval(() => {
         this.refreshAnchors().catch(err => {
-          console.error(`Error during periodic refresh: ${err}`);
+          log(`Error during periodic refresh: ${err}`);
         });
       }, interval);
     }
@@ -163,7 +164,7 @@ export class AnchorStore {
         this.updateAnchors(anchors);
         return;
       } catch (err) {
-        console.error(`Failed to read or parse local anchors file: ${err}`);
+        log(`Failed to read or parse local anchors file: ${err}`);
       }
     }
 
@@ -190,7 +191,7 @@ export class AnchorStore {
         return await this.fetchAnchorsFromRemotes(this.options.remoteUrls!);
       } catch (err) {
         attempts++;
-        console.error(`${err}.` + (attempts < maxRetries ? ` Retrying in ${delayMs}ms...` : ''));
+        log(`${err}.` + (attempts < maxRetries ? ` Retrying in ${delayMs}ms...` : ''));
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
@@ -200,7 +201,7 @@ export class AnchorStore {
   private async fetchAnchorsFromRemotes(remoteUrls: string[]): Promise<Anchor[]> {
     const responses = await Promise.all(
       remoteUrls.map(async url => {
-        console.log(`Fetching anchors from: ${url}`);
+        log(`Fetching anchors from: ${url}`);
         try {
           const res = await fetch(url);
           if (!res.ok) {
@@ -208,7 +209,7 @@ export class AnchorStore {
           }
           return res.json();
         } catch (err) {
-          console.error(`Error fetching ${url}: ${err}`);
+          log(`Error fetching ${url}: ${err}`);
           return null;
         }
       })
@@ -274,6 +275,6 @@ export class AnchorStore {
       this.trustPoints.set(anchor.root, anchor.block.height);
     }
 
-    console.log(`Anchors refreshed, latest block ${anchors[0].block.height}`);
+    log(`Anchors refreshed, latest block ${anchors[0].block.height}`);
   }
 }

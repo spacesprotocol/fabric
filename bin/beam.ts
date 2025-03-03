@@ -5,7 +5,7 @@ import {defineMainOptions, nodeOpts} from './common';
 import fs from 'fs';
 import {Fabric} from '../index';
 import dns from 'dns-packet';
-import {NostrEvent, validateEvent} from '../utils';
+import {log, NostrEvent, validateEvent} from '../utils';
 import {basename, resolve} from 'node:path';
 import {KeyPair} from 'hypercore-crypto';
 import {Buffer} from 'buffer';

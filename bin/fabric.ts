@@ -4,6 +4,7 @@ import {InvalidOptionArgumentError, program} from 'commander';
 import {Fabric, FabricOptions} from '../index';
 import {defineMainOptions, MainOptions, nodeOpts, joinHostPort} from './common';
 import {DHT} from 'dht-rpc';
+import {log} from '../utils';
 
 defineMainOptions();
 
@@ -15,7 +16,6 @@ program.parse();
 
 const opts = program.opts();
 
-
 async function main(opts: FabricOptions): Promise<void> {
   let node: Fabric | DHT;
   const bootstrap = opts.bootstrap;
@@ -25,10 +25,10 @@ async function main(opts: FabricOptions): Promise<void> {
     if (!opts.host) throw new InvalidOptionArgumentError('You need to specify a public --host <node ip> for the bootstrap node');
     if (!opts.port || isNaN(Number(opts.port))) throw new InvalidOptionArgumentError('You need to specify a valid --port <port> for the bootstrap node');
 
-    console.log('Starting Fabric bootstrap node...');
+    log('Starting Fabric bootstrap node...');
     node = Fabric.bootstrapper(Number(opts.port) || 0, opts.host, opts);
   } else {
-    console.log('Starting Fabric node...');
+    log('Starting Fabric node...');
     if (typeof opts.port === 'number' && opts.port !== 0) {
       // @ts-ignore
       opts.firewalled = false;
@@ -37,19 +37,19 @@ async function main(opts: FabricOptions): Promise<void> {
   }
 
   node.on('ephemeral', function () {
-    console.log('Node is ephemeral', node.address());
+    log('Node is ephemeral', node.address());
   });
 
   node.on('persistent', function () {
-    console.log('Node is persistent, joining remote routing tables');
+    log('Node is persistent, joining remote routing tables');
   });
 
   node.on('close', function () {
-    console.log('Node closed');
+    log('Node closed');
   });
 
   await node.ready();
-  console.log('Listening at:', joinHostPort(node.address()));
+  log('Listening at:', joinHostPort(node.address()));
 
   process.once('SIGINT', function () {
     node.destroy();
