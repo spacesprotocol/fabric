@@ -1,7 +1,9 @@
 
 
 
-| <img src="./logo.png" width="340"/> | <h1 align="left">Fabric</h1> <p align="left">Fabric is a free, open network that connects people and services without central control. Built on [hyperdht](https://github.com/holepunchto/hyperdht), it works with [Nostr](https://github.com/nostr-protocol/nostr) and [Spaces](https://spacesprotocol.org) to let you find someone by their sovereign handle (like `@example`) or by a public key (an `npub`).</p><br /> |
+
+
+| <img src="./logo.png" width="340"/> | <h1 align="left">Fabric</h1> <p align="left">Fabric is an open DHT network for [Nostr](https://github.com/nostr-protocol/nostr) and [Spaces](https://spacesprotocol.org) to let you discover records and relay information using a sovereign handle (e.g. `@example`) or by a public key (an `npub`).</p><br /> |
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 > [!NOTE]  
