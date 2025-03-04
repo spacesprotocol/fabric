@@ -14,7 +14,7 @@ import {DNS_EVENT_KIND} from '../constants';
 import c from 'compact-encoding';
 import b4a from 'b4a';
 
-const beamTitle = '<<>> Beam 0.1 <<>>';
+const beamTitle = '<<>> Beam <<>>';
 
 interface ResolveZoneResponse {
     zone: dns.Packet;
