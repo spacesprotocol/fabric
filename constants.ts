@@ -2,6 +2,7 @@ export const BOOTSTRAP_NODES = [
   '107.152.45.120@fabric.buffrr.dev:22253',
   '100.28.101.97:22253',
   '44.208.222.14:22253',
+  '70.251.209.207:22253',
 ]
 
 // Extend the existing COMMANDS from hyperdht/lib/constants
