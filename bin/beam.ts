@@ -5,7 +5,7 @@ import {defineMainOptions, joinHostPort, nodeOpts} from './common';
 import fs from 'fs';
 import {Fabric} from '../index';
 import dns from 'dns-packet';
-import {log, NostrEvent, validateEvent} from '../utils';
+import {NostrEvent, validateEvent} from '../utils';
 import {basename, resolve} from 'node:path';
 import {KeyPair} from 'hypercore-crypto';
 import {Buffer} from 'buffer';
@@ -13,6 +13,7 @@ import {compactEvent, toEvent} from '../messages';
 import {DNS_EVENT_KIND} from '../constants';
 import c from 'compact-encoding';
 import b4a from 'b4a';
+import {AnchorStore} from '../anchor';
 
 const beamTitle = '<<>> Beam <<>>';
 
@@ -482,6 +483,37 @@ for (let i = 1; i < args.length; i++) {
     }
   }
 }
+
+
+program
+  .command('ping <hostPort>')
+  .description('Ping a Fabric node for health check')
+  .action(async (hostPort: string) => {
+    const [host, portStr] = hostPort.split(':');
+    const port = Number(portStr);
+    if (!host || isNaN(port)) {
+      console.error(`Invalid peer "${hostPort}", expected "host:port".`);
+      process.exit(1);
+    }
+
+    const anchorStore = await AnchorStore.create({ staticAnchors: [] });
+    const fabric = new Fabric({ anchor: anchorStore });
+
+    let exitCode = 0;
+    try {
+      const response = await fabric.ping({ host, port });
+      console.log('; PONG');
+      console.log(`; Node ID: ${b4a.toString(response.from.id, 'hex')}`);
+    } catch (err: any) {
+      console.error('; No PONG:');
+      console.error(';', err.message ?? err)
+      exitCode = 1;
+    } finally {
+      await fabric.destroy();
+      process.exit(exitCode);
+    }
+  });
+
 
 
 program.parse(args);
